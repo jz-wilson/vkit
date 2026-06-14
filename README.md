@@ -104,6 +104,12 @@ GOOS=darwin GOARCH=arm64 go build -o /dev/null .   # cross-compile check
 GOOS=windows GOARCH=amd64 go build -o /dev/null .
 ```
 
+Enable the pre-commit hook once per clone (runs `gofmt`/`go vet`/`go test`):
+
+```bash
+git config core.hooksPath .githooks
+```
+
 > Module path is `vkit` (relocatable). Not in scope yet: `go install`
 > publishing, Homebrew tap.
 
