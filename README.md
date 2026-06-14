@@ -30,6 +30,7 @@ on `PATH` for commit-time validation and the watcher service to work.
 | `vkit rename <old> <new>` | Link-safe rename/move: scan inbound `[[links]]`, `git mv`, rewrite them. |
 | `vkit sync [-m msg]` | Rebuild the index and commit docs only (never `git add -A`). |
 | `vkit doctor` | Print detected OS / pkgmgr / systemd / tty / Obsidian state. |
+| `vkit version` | Print the build version (`--version` also works). |
 
 `--vault` (persistent flag) overrides vault discovery, which otherwise checks, in
 order: a positional path arg, `$VKIT_VAULT`, a walk-up search for the `_format.md`
@@ -103,5 +104,25 @@ GOOS=darwin GOARCH=arm64 go build -o /dev/null .   # cross-compile check
 GOOS=windows GOARCH=amd64 go build -o /dev/null .
 ```
 
-> Module path is `vkit` (relocatable). Not in scope yet: Forgejo repo + CI /
-> goreleaser multi-arch release, `go install` publishing, Homebrew tap.
+> Module path is `vkit` (relocatable). Not in scope yet: `go install`
+> publishing, Homebrew tap.
+
+## CI / Release
+
+GitHub Actions (`.github/workflows/`):
+
+- **ci.yml** — on push to `main` and PRs: `go vet`, `go test -race -cover`, and
+  `go build` across a linux/macOS/windows matrix.
+- **release.yml** — on a `v*` tag: [goreleaser](https://goreleaser.com)
+  (`.goreleaser.yaml`, v2) builds multi-arch tarballs (linux/darwin/windows ×
+  amd64/arm64) with checksums and a changelog, and publishes a GitHub release.
+
+The build version is injected at release time via
+`-ldflags "-X main.version={{.Version}}"` and surfaced by `vkit version`.
+
+Before cutting the first `v*` tag, sanity-check locally:
+
+```bash
+goreleaser check
+goreleaser release --snapshot --clean   # dry run, no publish
+```

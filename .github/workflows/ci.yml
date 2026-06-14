@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          # setup-go enables module + build caching by default, keyed on go.sum.
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: go vet
+        run: go vet ./...
+
+      # -race requires CGO and a C toolchain. ubuntu/macos runners ship one;
+      # the windows runner does too (mingw via the gcc on PATH), so -race is
+      # enabled across the matrix. If the windows runner ever regresses on the
+      # race detector, drop CGO there and run `go test ./...` (no -race) instead.
+      - name: go test (race + coverage)
+        run: go test -race -coverprofile=coverage.out ./...
+
+      - name: go build
+        run: go build ./...
