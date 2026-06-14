@@ -1,0 +1,7 @@
+# Built binary
+/vkit
+/vkit.exe
+
+# Test/build scratch
+*.out
+*.test

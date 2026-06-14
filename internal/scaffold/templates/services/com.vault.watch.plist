@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.vault.watch</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/env</string>
+    <string>vkit</string>
+    <string>watch</string>
+    <string>--vault</string>
+    <string>__VAULT__</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>__VAULT__/.vkit-watch.log</string>
+  <key>StandardErrorPath</key>
+  <string>__VAULT__/.vkit-watch.err</string>
+  <!-- launchd has no shell profile, so it can't see Homebrew/asdf/mise shims or
+       vkit. setup substitutes __PATH__ with the user's actual $PATH at install. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>__PATH__</string>
+  </dict>
+</dict>
+</plist>

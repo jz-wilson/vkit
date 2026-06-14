@@ -1,0 +1,14 @@
+# systemd user unit — Linux MOC watcher.
+# Installed to ~/.config/systemd/user/vault-watch.service.
+[Unit]
+Description=Vault MOC watcher (vkit)
+After=default.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/env vkit watch --vault __VAULT__
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(vkit:*)",
+      "Bash(rg:*)",
+      "Bash(fd:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)"
+    ]
+  }
+}

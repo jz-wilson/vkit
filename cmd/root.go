@@ -1,0 +1,66 @@
+// Package cmd is the cobra layer for vkit. It stays thin — every command
+// resolves the vault root and delegates to an internal package.
+package cmd
+
+import (
+	"fmt"
+	"os"
+
+	"github.com/spf13/cobra"
+
+	"vkit/internal/vaultpath"
+)
+
+var vaultFlag string
+
+var rootCmd = &cobra.Command{
+	Use:   "vkit",
+	Short: "Cross-platform vault starter kit — one binary, no shell scripts.",
+	Long: `vkit scaffolds and maintains a plain-folder knowledge vault that Claude Code
+reads live off disk: a Map of Content index, frontmatter validation, a
+file watcher, and link-safe note operations — all in one static binary.`,
+	SilenceUsage:  true,
+	SilenceErrors: true,
+}
+
+func init() {
+	rootCmd.PersistentFlags().StringVar(&vaultFlag, "vault", "", "vault root (default: $VKIT_VAULT, walk-up to _format.md, or $HOME/vault)")
+	rootCmd.AddCommand(initCmd, updateCmd, mocCmd, watchCmd, validateCmd, noteCmd, renameCmd, syncCmd, doctorCmd)
+}
+
+// Execute runs the root command.
+func Execute() {
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Fprintln(os.Stderr, "vkit:", err)
+		os.Exit(1)
+	}
+}
+
+// resolveVault resolves the vault from arg + the --vault flag and requires it to
+// exist.
+func resolveVault(arg string) (string, error) {
+	v, err := vaultpath.Resolve(arg, vaultFlag)
+	if err != nil {
+		return "", err
+	}
+	if _, err := os.Stat(v); err != nil {
+		return "", fmt.Errorf("vault not found: %s", v)
+	}
+	return v, nil
+}
+
+// resolveExisting resolves the vault for commands whose first positional arg IS
+// the vault path (init/update/moc/watch).
+func resolveExisting(args []string) (string, error) {
+	arg := ""
+	if len(args) > 0 {
+		arg = args[0]
+	}
+	return resolveVault(arg)
+}
+
+// vaultRoot resolves the vault for commands whose positional args are NOT the
+// vault path (note, rename, sync, validate).
+func vaultRoot() (string, error) {
+	return resolveVault("")
+}

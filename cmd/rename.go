@@ -1,0 +1,35 @@
+package cmd
+
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+
+	"vkit/internal/moc"
+	"vkit/internal/rename"
+	"vkit/internal/vaultpath"
+)
+
+var renameCmd = &cobra.Command{
+	Use:   "rename <old> <new>",
+	Short: "Link-safe rename/move: scan inbound [[links]], git mv, rewrite them.",
+	Args:  cobra.ExactArgs(2),
+	RunE: func(cmd *cobra.Command, args []string) error {
+		vault, err := vaultRoot()
+		if err != nil {
+			return err
+		}
+		touched, err := rename.Rename(vault, args[0], args[1])
+		if err != nil {
+			return err
+		}
+		if _, err := moc.Build(vault, vaultpath.Today()); err != nil {
+			return err
+		}
+		fmt.Printf("Renamed %s -> %s. Touched %d file(s):\n", args[0], args[1], len(touched))
+		for _, f := range touched {
+			fmt.Printf("  %s\n", f)
+		}
+		return nil
+	},
+}

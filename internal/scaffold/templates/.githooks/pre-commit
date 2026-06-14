@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Validate staged markdown notes before commit. Delegates to the vkit binary,
+# which carries the same rules the kit always enforced (frontmatter on line 1,
+# `updated:` present, exactly one H1, no absolute paths in the body).
+exec vkit validate --staged

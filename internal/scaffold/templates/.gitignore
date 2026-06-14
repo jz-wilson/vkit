@@ -1,0 +1,17 @@
+# Editor swap / atomic-save temp files (never real notes)
+._*
+.*.sw[a-p]
+*~
+*.tmp
+*.bak
+
+# OS cruft
+.DS_Store
+Thumbs.db
+
+# Watcher runtime state
+.moc-stamp
+
+# Per-machine capability marker (Obsidian CLI native mode) — do not sync to
+# headless boxes that have no GUI.
+.obsidian-cli-enabled
