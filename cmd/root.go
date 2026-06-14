@@ -25,11 +25,16 @@ file watcher, and link-safe note operations — all in one static binary.`,
 
 func init() {
 	rootCmd.PersistentFlags().StringVar(&vaultFlag, "vault", "", "vault root (default: $VKIT_VAULT, walk-up to _format.md, or $HOME/vault)")
-	rootCmd.AddCommand(initCmd, updateCmd, mocCmd, watchCmd, validateCmd, noteCmd, renameCmd, syncCmd, doctorCmd)
+	rootCmd.Version = Version // enables the built-in --version flag
+	rootCmd.AddCommand(initCmd, updateCmd, mocCmd, watchCmd, validateCmd, noteCmd, renameCmd, syncCmd, doctorCmd, versionCmd)
 }
 
-// Execute runs the root command.
-func Execute() {
+// Execute runs the root command. v is the build version injected by main
+// (goreleaser ldflags); an empty value keeps the "dev" default.
+func Execute(v string) {
+	if v != "" {
+		setVersion(v)
+	}
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "vkit:", err)
 		os.Exit(1)
