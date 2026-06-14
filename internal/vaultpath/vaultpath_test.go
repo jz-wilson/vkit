@@ -97,6 +97,9 @@ func TestResolveFallsBackToHomeVault(t *testing.T) {
 	t.Setenv("VKIT_VAULT", "")
 	home := t.TempDir()
 	t.Setenv("HOME", home)
+	// os.UserHomeDir reads %USERPROFILE% on Windows, $HOME elsewhere — set both
+	// so the fallback resolves to our temp home on every OS.
+	t.Setenv("USERPROFILE", home)
 
 	got, err := Resolve("", "")
 	if err != nil {
@@ -124,16 +127,16 @@ func TestIsVault(t *testing.T) {
 
 func TestIsExcludedDir(t *testing.T) {
 	cases := map[string]bool{
-		".git":         true,
-		".claude":      true,
-		"scripts":      true,
-		"services":     true,
-		"archive":      true,
-		".obsidian":    true, // any dotdir
-		".hidden":      true,
-		"projects":     false,
+		".git":           true,
+		".claude":        true,
+		"scripts":        true,
+		"services":       true,
+		"archive":        true,
+		".obsidian":      true, // any dotdir
+		".hidden":        true,
+		"projects":       false,
 		"infrastructure": false,
-		"notes":        false,
+		"notes":          false,
 	}
 	for base, want := range cases {
 		if got := IsExcludedDir(base); got != want {
@@ -144,21 +147,21 @@ func TestIsExcludedDir(t *testing.T) {
 
 func TestIsNote(t *testing.T) {
 	cases := map[string]bool{
-		"projects/a.md":           true,
-		"decisions/2026-06.md":    true,
-		"zeta.md":                 true,
-		"notes/file.txt":          false, // not markdown
-		".obsidian/x.md":          false, // dot segment
-		"projects/.hidden.md":     false, // dotfile basename
-		"scripts/x.md":            false, // excluded dir
-		"services/y.md":           false, // excluded dir
-		"archive/old.md":          false, // excluded dir
-		".git/config.md":          false, // excluded dir + dot
-		"MOC.md":                  false, // skip name
-		"CLAUDE.md":               false, // skip name
-		"AGENTS.md":               false, // skip name
-		"_format.md":              false, // skip name
-		"a/MOC.md":                false, // skip name in subdir
+		"projects/a.md":        true,
+		"decisions/2026-06.md": true,
+		"zeta.md":              true,
+		"notes/file.txt":       false, // not markdown
+		".obsidian/x.md":       false, // dot segment
+		"projects/.hidden.md":  false, // dotfile basename
+		"scripts/x.md":         false, // excluded dir
+		"services/y.md":        false, // excluded dir
+		"archive/old.md":       false, // excluded dir
+		".git/config.md":       false, // excluded dir + dot
+		"MOC.md":               false, // skip name
+		"CLAUDE.md":            false, // skip name
+		"AGENTS.md":            false, // skip name
+		"_format.md":           false, // skip name
+		"a/MOC.md":             false, // skip name in subdir
 	}
 	for rel, want := range cases {
 		if got := IsNote(rel); got != want {

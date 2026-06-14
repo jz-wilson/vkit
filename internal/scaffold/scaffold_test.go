@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -160,12 +161,12 @@ func TestInstallTree(t *testing.T) {
 			t.Errorf("missing content dir %s", d)
 		}
 	}
-	// hook is executable
+	// hook is executable (Windows has no Unix exec bit — skip the mode check there)
 	fi, err := os.Stat(filepath.Join(v, ".githooks", "pre-commit"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if fi.Mode()&0o100 == 0 {
+	if runtime.GOOS != "windows" && fi.Mode()&0o100 == 0 {
 		t.Error("pre-commit not executable")
 	}
 }
