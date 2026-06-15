@@ -39,7 +39,7 @@ func TestRenameRewritesLinks(t *testing.T) {
 	write(t, v, "projects/nolink.md", "nothing relevant here, [[older]] stays.\n")
 	gitInit(t, v)
 
-	touched, err := Rename(v, "old.md", "renamed.md")
+	touched, err := Rename(v, "old.md", "renamed.md", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,6 +70,38 @@ func TestRenameRewritesLinks(t *testing.T) {
 	out, _ := exec.Command("git", "-C", v, "ls-files", "renamed.md").Output()
 	if strings.TrimSpace(string(out)) != "renamed.md" {
 		t.Errorf("git mv not applied, ls-files: %q", out)
+	}
+}
+
+func TestRenameDryRun(t *testing.T) {
+	v := t.TempDir()
+	write(t, v, "old.md", "---\nupdated: 2026-06-14\n---\n\n# Old\n")
+	write(t, v, "projects/linker.md", "see [[old]] here.\n")
+	gitInit(t, v)
+
+	touched, err := Rename(v, "old.md", "renamed.md", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// source still exists, destination does not
+	if _, err := os.Stat(filepath.Join(v, "old.md")); err != nil {
+		t.Error("old.md should still exist in dry-run mode")
+	}
+	if _, err := os.Stat(filepath.Join(v, "renamed.md")); err == nil {
+		t.Error("renamed.md must not exist in dry-run mode")
+	}
+
+	// linker content unchanged
+	linker, _ := os.ReadFile(filepath.Join(v, "projects", "linker.md"))
+	if string(linker) != "see [[old]] here.\n" {
+		t.Errorf("linker was modified in dry-run: %q", linker)
+	}
+
+	// touch list still reports what would have changed
+	joined := strings.Join(touched, ",")
+	if !strings.Contains(joined, "renamed.md") || !strings.Contains(joined, "projects/linker.md") {
+		t.Errorf("dry-run touched = %v; expected renamed.md and projects/linker.md", touched)
 	}
 }
 

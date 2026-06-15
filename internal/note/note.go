@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/jz-wilson/vkit/internal/obsidianconfig"
 )
 
 // ensureMD appends ".md" to relPath when it has no .md extension, so callers
@@ -80,6 +82,14 @@ type Creator interface {
 type portableCreator struct{}
 
 func (portableCreator) Create(vault, relPath, title string, tags []string, today string) error {
+	// Apply the vault's configured default note folder when the caller gave a
+	// bare filename with no directory component. "current" has no CLI meaning
+	// so it falls back to root (empty folder = no prefix).
+	if filepath.Dir(relPath) == "." {
+		if folder := obsidianconfig.Read(vault).DefaultNoteFolder(); folder != "" {
+			relPath = folder + "/" + relPath
+		}
+	}
 	return Create(vault, relPath, title, tags, today)
 }
 

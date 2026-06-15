@@ -47,7 +47,11 @@ func (LinkRewriter) Rewrite(content, oldStem, newStem string) string {
 	return out
 }
 
-func Rename(vault, oldRel, newRel string) ([]string, error) {
+// Rename performs a link-safe rename of oldRel to newRel inside vault.
+// It runs git mv, rewrites all inbound [[wiki-links]], and returns the list of
+// touched files. When dryRun is true no filesystem or git changes are written;
+// the returned list shows what would have been touched.
+func Rename(vault, oldRel, newRel string, dryRun bool) ([]string, error) {
 	oldRel = filepath.ToSlash(oldRel)
 	newRel = filepath.ToSlash(newRel)
 
@@ -62,11 +66,13 @@ func Rename(vault, oldRel, newRel string) ([]string, error) {
 	oldNoExt := strings.TrimSuffix(oldRel, ".md")
 	newNoExt := strings.TrimSuffix(newRel, ".md")
 
-	if err := os.MkdirAll(filepath.Dir(filepath.Join(vault, newRel)), 0o755); err != nil {
-		return nil, err
-	}
-	if err := gitMv(vault, oldRel, newRel); err != nil {
-		return nil, err
+	if !dryRun {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(vault, newRel)), 0o755); err != nil {
+			return nil, err
+		}
+		if err := gitMv(vault, oldRel, newRel); err != nil {
+			return nil, err
+		}
 	}
 
 	rw := LinkRewriter{}
@@ -93,8 +99,10 @@ func Rename(vault, oldRel, newRel string) ([]string, error) {
 		orig := string(b)
 		out := rw.Rewrite(orig, oldNoExt, newNoExt)
 		if out != orig {
-			if err := os.WriteFile(path, []byte(out), 0o644); err != nil {
-				return err
+			if !dryRun {
+				if err := os.WriteFile(path, []byte(out), 0o644); err != nil {
+					return err
+				}
 			}
 			rel, _ := filepath.Rel(vault, path)
 			touched[filepath.ToSlash(rel)] = true

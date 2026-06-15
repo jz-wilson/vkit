@@ -245,6 +245,64 @@ func TestCreateNativeExecFailure(t *testing.T) {
 	}
 }
 
+// TestPortableCreatorRespectsVaultDefaultFolder: when .obsidian/app.json
+// sets newFileLocation=folder, portableCreator.Create routes bare-stem notes
+// into the configured folder automatically.
+func TestPortableCreatorRespectsVaultDefaultFolder(t *testing.T) {
+	t.Setenv("VAULT_OBSIDIAN_CLI", "0")
+	v := t.TempDir()
+
+	// write .obsidian/app.json pointing new notes to "inbox"
+	obsDir := filepath.Join(v, ".obsidian")
+	if err := os.MkdirAll(obsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(obsDir, "app.json"),
+		[]byte(`{"newFileLocation":"folder","newFileFolderPath":"inbox"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	creator := New(v)
+	if err := creator.Create(v, "bare-note.md", "Bare", nil, "2026-06-15"); err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+	// note must land in inbox/, not vault root
+	if _, err := os.Stat(filepath.Join(v, "inbox", "bare-note.md")); err != nil {
+		t.Error("note not routed to inbox/ as configured in app.json")
+	}
+	if _, err := os.Stat(filepath.Join(v, "bare-note.md")); err == nil {
+		t.Error("note created at vault root — should be in inbox/")
+	}
+}
+
+// TestPortableCreatorExplicitPathNotRerouted: an explicit path with a folder
+// component bypasses vault default routing regardless of app.json.
+func TestPortableCreatorExplicitPathNotRerouted(t *testing.T) {
+	t.Setenv("VAULT_OBSIDIAN_CLI", "0")
+	v := t.TempDir()
+
+	obsDir := filepath.Join(v, ".obsidian")
+	if err := os.MkdirAll(obsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(obsDir, "app.json"),
+		[]byte(`{"newFileLocation":"folder","newFileFolderPath":"inbox"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	creator := New(v)
+	if err := creator.Create(v, "projects/explicit.md", "Explicit", nil, "2026-06-15"); err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(v, "projects", "explicit.md")); err != nil {
+		t.Error("explicit path not respected")
+	}
+	// must not appear under inbox/
+	if _, err := os.Stat(filepath.Join(v, "inbox", "explicit.md")); err == nil {
+		t.Error("explicit path was rerouted to inbox — should not happen")
+	}
+}
+
 func TestNew_returnsPortableWhenDisabled(t *testing.T) {
 	t.Setenv("VAULT_OBSIDIAN_CLI", "0")
 	v := t.TempDir()

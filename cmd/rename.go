@@ -11,6 +11,8 @@ import (
 	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
 
+var renameDryRun bool
+
 var renameCmd = &cobra.Command{
 	Use:   "rename <old> <new>",
 	Short: "Link-safe rename/move: scan inbound [[links]], git mv, rewrite them.",
@@ -20,9 +22,18 @@ var renameCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		touched, err := rename.Rename(vault, args[0], args[1])
+		touched, err := rename.Rename(vault, args[0], args[1], renameDryRun)
 		if err != nil {
 			return err
+		}
+		if renameDryRun {
+			fmt.Println(ui.Line("🔍", ui.Dim(fmt.Sprintf("Dry run: %s → %s", args[0], args[1]))))
+			fmt.Println(ui.Dim(fmt.Sprintf("  Would touch %d file(s):", len(touched))))
+			for _, f := range touched {
+				fmt.Printf("    %s\n", ui.Dim(f))
+			}
+			fmt.Println(ui.Dim("  (no changes written)"))
+			return nil
 		}
 		if _, err := moc.Build(vault, vaultpath.Today()); err != nil {
 			return err
@@ -34,4 +45,8 @@ var renameCmd = &cobra.Command{
 		}
 		return nil
 	},
+}
+
+func init() {
+	renameCmd.Flags().BoolVar(&renameDryRun, "dry-run", false, "show what would change without writing anything")
 }
