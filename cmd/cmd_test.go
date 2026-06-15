@@ -217,6 +217,20 @@ func TestVersionDefault(t *testing.T) {
 // moc
 // ----------------------------------------------------------------------------
 
+func TestMocOutputHeader(t *testing.T) {
+	v := vault(t)
+	writeNote(t, v, "projects/alpha.md", "---\nupdated: 2026-06-14\n---\n\n# Alpha\n")
+	out, err := runRootCapture(t, "moc")
+	if err != nil {
+		t.Fatalf("moc error: %v", err)
+	}
+	for _, want := range []string{"MOC", "Wrote MOC.md"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("moc output missing %q:\n%s", want, out)
+		}
+	}
+}
+
 func TestMocBuildsIndex(t *testing.T) {
 	v := vault(t)
 	writeNote(t, v, "projects/alpha.md", "---\nupdated: 2026-06-14\n---\n\n# Alpha Note\n")
@@ -243,6 +257,18 @@ func TestMocBuildsIndex(t *testing.T) {
 // ----------------------------------------------------------------------------
 // validate — success path (exit 0 / nil error) via direct RunE
 // ----------------------------------------------------------------------------
+
+func TestValidateSuccessPrintsCount(t *testing.T) {
+	v := vault(t)
+	writeNote(t, v, "good.md", "---\nupdated: 2026-06-14\n---\n\n# Good\n")
+	out, err := runRootCapture(t, "validate")
+	if err != nil {
+		t.Fatalf("validate error: %v", err)
+	}
+	if !strings.Contains(out, "notes valid") {
+		t.Errorf("validate success missing 'notes valid':\n%s", out)
+	}
+}
 
 func TestValidatePassesOnCleanVault(t *testing.T) {
 	v := vault(t)
@@ -388,6 +414,49 @@ func TestNoteTitleAndTagsFlags(t *testing.T) {
 	}
 }
 
+func TestNoteOutputShowsTitleAndPath(t *testing.T) {
+	vault(t)
+	out, err := runRootCapture(t, "note", "projects/my-note.md", "--title", "My Note")
+	if err != nil {
+		t.Fatalf("note error: %v", err)
+	}
+	for _, want := range []string{"My Note", "projects/my-note.md"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("note output missing %q:\n%s", want, out)
+		}
+	}
+}
+
+func TestNoteOutputShowsTags(t *testing.T) {
+	vault(t)
+	out, err := runRootCapture(t, "note", "tagged.md", "--tags", "a,b")
+	if err != nil {
+		t.Fatalf("note error: %v", err)
+	}
+	if !strings.Contains(out, "tags") {
+		t.Errorf("note output missing 'tags' row:\n%s", out)
+	}
+}
+
+func TestNoteOutputRoutedPath(t *testing.T) {
+	v := vault(t)
+	obsDir := filepath.Join(v, ".obsidian")
+	if err := os.MkdirAll(obsDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(obsDir, "app.json"),
+		[]byte(`{"newFileLocation":"folder","newFileFolderPath":"inbox"}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	out, err := runRootCapture(t, "note", "bare-stem.md")
+	if err != nil {
+		t.Fatalf("note error: %v", err)
+	}
+	if !strings.Contains(out, "inbox") {
+		t.Errorf("note output should show routed folder 'inbox':\n%s", out)
+	}
+}
+
 func TestNoteRefusesOverwrite(t *testing.T) {
 	v := vault(t)
 	writeNote(t, v, "exists.md", "---\nupdated: 2026-06-14\n---\n\n# Exists\n")
@@ -451,8 +520,10 @@ func TestSyncRebuildsAndCommits(t *testing.T) {
 	if err != nil {
 		t.Fatalf("sync error: %v (out=%q)", err, out)
 	}
-	if !strings.Contains(out, "Rebuilt MOC.md") {
-		t.Errorf("sync did not report MOC rebuild:\n%s", out)
+	for _, want := range []string{"Rebuilt MOC.md", "Staged", "Committed"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("sync output missing %q:\n%s", want, out)
+		}
 	}
 	// a commit should now exist with our message
 	log := gitOut(t, v, "log", "--oneline")
@@ -485,6 +556,53 @@ func TestSyncSkipsMissingDir(t *testing.T) {
 	log := gitOut(t, v, "log", "--oneline")
 	if !strings.Contains(log, "partial dirs sync") {
 		t.Errorf("expected commit despite missing dirs, git log:\n%s", log)
+	}
+}
+
+// ----------------------------------------------------------------------------
+// rename — git-dependent output assertions
+// ----------------------------------------------------------------------------
+
+func TestRenameOutput(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not on PATH")
+	}
+	v := vault(t)
+	mustGit(t, v, "init", "-q")
+	mustGit(t, v, "config", "user.name", "test")
+	mustGit(t, v, "config", "user.email", "test@local")
+	writeNote(t, v, "old.md", "---\nupdated: 2026-06-14\n---\n\n# Old\n")
+	writeNote(t, v, "linker.md", "see [[old]] here.\n")
+	mustGit(t, v, "add", "-A")
+
+	out, err := runRootCapture(t, "rename", "old.md", "new.md")
+	if err != nil {
+		t.Fatalf("rename error: %v (out=%q)", err, out)
+	}
+	for _, want := range []string{"git mv", "Scanned", "Rewrote", "Renamed"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("rename output missing %q:\n%s", want, out)
+		}
+	}
+}
+
+// ----------------------------------------------------------------------------
+// init — git-dependent output assertions
+// ----------------------------------------------------------------------------
+
+func TestInitOutput(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not on PATH")
+	}
+	v := t.TempDir()
+	out, err := runRootCapture(t, "init", v)
+	if err != nil {
+		t.Fatalf("init error: %v (out=%q)", err, out)
+	}
+	for _, want := range []string{"Scaffolded", "hooksPath", "Built MOC.md", "Initial commit"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("init output missing %q:\n%s", want, out)
+		}
 	}
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/jz-wilson/vkit/cmd/ui"
 	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/osdetect"
 	"github.com/jz-wilson/vkit/internal/scaffold"
@@ -37,6 +38,8 @@ var updateCmd = &cobra.Command{
 		}
 
 		// have_tty(): a real /dev/tty must be openable for the prompt to run.
+		fmt.Println(ui.Section("🔧", "Update"))
+
 		hasTTY := osdetect.Detect("").HasTTY
 		in, closeIn := promptInput(hasTTY)
 		defer closeIn()
@@ -51,14 +54,16 @@ var updateCmd = &cobra.Command{
 		}
 
 		// Update never auto-commits — rebuild the index only.
-		if _, err := moc.Build(vault, vaultpath.Today()); err != nil {
+		n, err := moc.Build(vault, vaultpath.Today())
+		if err != nil {
 			return err
 		}
-
-		fmt.Printf("\nDone (update — %s).\n", res.Action)
-		fmt.Printf("  Tooling:   %d refreshed\n", res.Tool)
-		fmt.Printf("  Templates: %d added, %d overwritten, %d kept\n", res.New, res.Over, res.Keep)
-		fmt.Println("  Rebuilt MOC.md. Backups (if any) written as <file>.bak. Review & commit yourself (no auto-commit).")
+		fmt.Println(ui.Step(true, fmt.Sprintf("MOC rebuilt (%d notes)", n)))
+		fmt.Println(ui.Summary(
+			res.Action,
+			fmt.Sprintf("%d tooling, %d added, %d overwritten, %d kept", res.Tool, res.New, res.Over, res.Keep),
+		))
+		fmt.Println(ui.Dim("  Backups (if any) written as <file>.bak — review & commit yourself."))
 		return nil
 	},
 }

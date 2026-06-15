@@ -22,27 +22,39 @@ var renameCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		touched, err := rename.Rename(vault, args[0], args[1], renameDryRun)
+		res, err := rename.Rename(vault, args[0], args[1], renameDryRun)
 		if err != nil {
 			return err
 		}
+		header := ui.Section("✏️", "Rename") + "  " + ui.Dim(args[0]+" → "+args[1])
 		if renameDryRun {
-			fmt.Println(ui.Line("🔍", ui.Dim(fmt.Sprintf("Dry run: %s → %s", args[0], args[1]))))
-			fmt.Println(ui.Dim(fmt.Sprintf("  Would touch %d file(s):", len(touched))))
-			for _, f := range touched {
-				fmt.Printf("    %s\n", ui.Dim(f))
+			fmt.Println(header)
+			fmt.Println(ui.Step(true, "(dry) git mv "+args[0]+" → "+args[1]))
+			fmt.Println(ui.Step(true, fmt.Sprintf("(dry) Scanned %d files", res.Scanned)))
+			fmt.Println(ui.Step(true, fmt.Sprintf("(dry) Rewrote %d links", res.Rewritten)))
+			for _, f := range res.Touched {
+				if f != args[1] {
+					fmt.Println("    " + ui.Dim(f))
+				}
 			}
-			fmt.Println(ui.Dim("  (no changes written)"))
+			fmt.Println(ui.Summary("no changes written"))
 			return nil
 		}
-		if _, err := moc.Build(vault, vaultpath.Today()); err != nil {
+		n, err := moc.Build(vault, vaultpath.Today())
+		if err != nil {
 			return err
 		}
-		fmt.Println(ui.Line("✏️", ui.OK(fmt.Sprintf("Renamed %s → %s", ui.Dim(args[0]), ui.Dim(args[1])))))
-		fmt.Println(ui.Dim(fmt.Sprintf("  Touched %d file(s):", len(touched))))
-		for _, f := range touched {
-			fmt.Printf("    %s\n", ui.Dim(f))
+		fmt.Println(header)
+		fmt.Println(ui.Step(true, "git mv "+args[0]+" → "+args[1]))
+		fmt.Println(ui.Step(true, fmt.Sprintf("Scanned %d files", res.Scanned)))
+		fmt.Println(ui.Step(true, fmt.Sprintf("Rewrote %d links", res.Rewritten)))
+		for _, f := range res.Touched {
+			if f != args[1] {
+				fmt.Println("    " + ui.Dim(f))
+			}
 		}
+		fmt.Println(ui.Step(true, fmt.Sprintf("MOC rebuilt (%d notes)", n)))
+		fmt.Println(ui.Summary("Renamed "+args[0]+" → "+args[1], fmt.Sprintf("%d files updated", res.Rewritten)))
 		return nil
 	},
 }

@@ -23,7 +23,8 @@ var mocCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println(ui.Line("🗂️", ui.OK(fmt.Sprintf("Wrote MOC.md (%d notes)", n))))
+		fmt.Println(ui.Section("🗂️", "MOC"))
+		fmt.Println(ui.Step(true, fmt.Sprintf("Wrote MOC.md (%d notes)", n)))
 		return nil
 	},
 }

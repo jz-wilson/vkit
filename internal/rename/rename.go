@@ -47,20 +47,28 @@ func (LinkRewriter) Rewrite(content, oldStem, newStem string) string {
 	return out
 }
 
+// Result holds the outcome of a Rename call.
+type Result struct {
+	Touched   []string // all files that were or would be changed (sorted)
+	Scanned   int      // total .md files walked
+	Rewritten int      // files whose link content changed (excludes the moved file itself)
+}
+
 // Rename performs a link-safe rename of oldRel to newRel inside vault.
-// It runs git mv, rewrites all inbound [[wiki-links]], and returns the list of
-// touched files. When dryRun is true no filesystem or git changes are written;
-// the returned list shows what would have been touched.
-func Rename(vault, oldRel, newRel string, dryRun bool) ([]string, error) {
+// It runs git mv, rewrites all inbound [[wiki-links]], and returns a Result
+// with the list of touched files plus scan/rewrite counts. When dryRun is
+// true no filesystem or git changes are written; the result shows what would
+// have been touched.
+func Rename(vault, oldRel, newRel string, dryRun bool) (Result, error) {
 	oldRel = filepath.ToSlash(oldRel)
 	newRel = filepath.ToSlash(newRel)
 
 	oldFull := filepath.Join(vault, oldRel)
 	if _, err := os.Stat(oldFull); err != nil {
-		return nil, fmt.Errorf("source note not found: %s", oldRel)
+		return Result{}, fmt.Errorf("source note not found: %s", oldRel)
 	}
 	if _, err := os.Stat(filepath.Join(vault, newRel)); err == nil {
-		return nil, fmt.Errorf("destination already exists: %s", newRel)
+		return Result{}, fmt.Errorf("destination already exists: %s", newRel)
 	}
 
 	oldNoExt := strings.TrimSuffix(oldRel, ".md")
@@ -68,16 +76,17 @@ func Rename(vault, oldRel, newRel string, dryRun bool) ([]string, error) {
 
 	if !dryRun {
 		if err := os.MkdirAll(filepath.Dir(filepath.Join(vault, newRel)), 0o755); err != nil {
-			return nil, err
+			return Result{}, err
 		}
 		if err := gitMv(vault, oldRel, newRel); err != nil {
-			return nil, err
+			return Result{}, err
 		}
 	}
 
 	rw := LinkRewriter{}
 	touched := map[string]bool{}
 	touched[newRel] = true
+	var scanned, rewritten int
 
 	err := filepath.WalkDir(vault, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -92,6 +101,7 @@ func Rename(vault, oldRel, newRel string, dryRun bool) ([]string, error) {
 		if filepath.Ext(path) != ".md" {
 			return nil
 		}
+		scanned++
 		b, err := os.ReadFile(path)
 		if err != nil {
 			return nil
@@ -106,11 +116,12 @@ func Rename(vault, oldRel, newRel string, dryRun bool) ([]string, error) {
 			}
 			rel, _ := filepath.Rel(vault, path)
 			touched[filepath.ToSlash(rel)] = true
+			rewritten++
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return Result{}, err
 	}
 
 	out := make([]string, 0, len(touched))
@@ -118,7 +129,7 @@ func Rename(vault, oldRel, newRel string, dryRun bool) ([]string, error) {
 		out = append(out, f)
 	}
 	sort.Strings(out)
-	return out, nil
+	return Result{Touched: out, Scanned: scanned, Rewritten: rewritten}, nil
 }
 
 func linkRe(target string) *regexp.Regexp {

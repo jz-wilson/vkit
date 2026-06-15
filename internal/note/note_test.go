@@ -263,7 +263,7 @@ func TestPortableCreatorRespectsVaultDefaultFolder(t *testing.T) {
 	}
 
 	creator := New(v)
-	if err := creator.Create(v, "bare-note.md", "Bare", nil, "2026-06-15"); err != nil {
+	if _, err := creator.Create(v, "bare-note.md", "Bare", nil, "2026-06-15"); err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
 	// note must land in inbox/, not vault root
@@ -291,7 +291,7 @@ func TestPortableCreatorExplicitPathNotRerouted(t *testing.T) {
 	}
 
 	creator := New(v)
-	if err := creator.Create(v, "projects/explicit.md", "Explicit", nil, "2026-06-15"); err != nil {
+	if _, err := creator.Create(v, "projects/explicit.md", "Explicit", nil, "2026-06-15"); err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(v, "projects", "explicit.md")); err != nil {
@@ -309,7 +309,7 @@ func TestNew_returnsPortableWhenDisabled(t *testing.T) {
 	creator := New(v)
 	// Verify we get a portableCreator by exercising its Create path — it must
 	// write the file to disk (nativeCreator would invoke the obsidian binary).
-	if err := creator.Create(v, "test-new.md", "Test New", nil, "2026-06-15"); err != nil {
+	if _, err := creator.Create(v, "test-new.md", "Test New", nil, "2026-06-15"); err != nil {
 		t.Fatalf("Create failed: %v", err)
 	}
 	mdPath := filepath.Join(v, "test-new.md")

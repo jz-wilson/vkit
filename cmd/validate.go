@@ -56,13 +56,14 @@ var validateCmd = &cobra.Command{
 			return err
 		}
 		if len(probs) > 0 {
-			fmt.Fprintln(os.Stderr, ui.Line("🔍", ui.Fail("Validation failed")))
+			fmt.Fprintln(os.Stderr, ui.Line("🔍", ui.Fail(fmt.Sprintf("Validation failed (%d notes checked)", len(rels)))))
 			for _, p := range probs {
 				fmt.Fprintf(os.Stderr, "    %s: %s\n", ui.Dim(p.File), p.Msg)
 			}
 			fmt.Fprintln(os.Stderr, ui.Dim("  Fix the above, then re-commit."))
 			os.Exit(1)
 		}
+		fmt.Println(ui.Line("🔍", ui.OK(fmt.Sprintf("%d notes valid", len(rels)))))
 		return nil
 	},
 }

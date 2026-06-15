@@ -3,6 +3,7 @@ package ui
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -56,4 +57,14 @@ func OK(text string) string {
 // Fail renders a red ✗ + text.
 func Fail(text string) string {
 	return StyleError.Render("✗") + "  " + text
+}
+
+// Step renders a 2-space-indented per-substep line with a ✓ or ✗ prefix.
+func Step(ok bool, msg string) string {
+	return "  " + Check(ok) + "  " + msg
+}
+
+// Summary renders a dim footer with parts joined by " · ", 2-space indent.
+func Summary(parts ...string) string {
+	return StyleDim.Render("  " + strings.Join(parts, " · "))
 }

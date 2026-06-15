@@ -39,10 +39,11 @@ func TestRenameRewritesLinks(t *testing.T) {
 	write(t, v, "projects/nolink.md", "nothing relevant here, [[older]] stays.\n")
 	gitInit(t, v)
 
-	touched, err := Rename(v, "old.md", "renamed.md", false)
+	res, err := Rename(v, "old.md", "renamed.md", false)
 	if err != nil {
 		t.Fatal(err)
 	}
+	touched := res.Touched
 
 	if _, err := os.Stat(filepath.Join(v, "renamed.md")); err != nil {
 		t.Error("renamed.md not present")
@@ -79,10 +80,11 @@ func TestRenameDryRun(t *testing.T) {
 	write(t, v, "projects/linker.md", "see [[old]] here.\n")
 	gitInit(t, v)
 
-	touched, err := Rename(v, "old.md", "renamed.md", true)
+	res, err := Rename(v, "old.md", "renamed.md", true)
 	if err != nil {
 		t.Fatal(err)
 	}
+	touched := res.Touched
 
 	// source still exists, destination does not
 	if _, err := os.Stat(filepath.Join(v, "old.md")); err != nil {

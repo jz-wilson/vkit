@@ -35,28 +35,34 @@ var initCmd = &cobra.Command{
 		if err := scaffold.Install(vault); err != nil {
 			return err
 		}
+		fmt.Println(ui.Step(true, "Scaffolded vault structure"))
 
 		// git: init if absent, always (re)point hooksPath at our hook dir.
 		if _, err := os.Stat(filepath.Join(vault, ".git")); err != nil {
 			if err := git(vault, "init", "-q"); err != nil {
 				return err
 			}
+			fmt.Println(ui.Step(true, "git init"))
 		}
 		if err := git(vault, "config", "core.hooksPath", ".githooks"); err != nil {
 			return err
 		}
+		fmt.Println(ui.Step(true, "Set core.hooksPath → .githooks"))
 
 		n, err := moc.Build(vault, vaultpath.Today())
 		if err != nil {
 			return err
 		}
+		fmt.Println(ui.Step(true, fmt.Sprintf("Built MOC.md (%d notes)", n)))
 
 		// Initial commit (fresh install only — safe to add everything).
 		// --no-verify: the pre-commit hook calls `vkit`, which may not be on PATH
 		// yet at bootstrap, and the generated scaffold is known-valid anyway.
 		_ = git(vault, "add", "-A")
 		_ = gitCommit(vault, "vault: initial scaffold", true)
+		fmt.Println(ui.Step(true, "Initial commit"))
 
+		fmt.Println()
 		info := osdetect.Detect(vault)
 		fmt.Println(ui.Line("🚀", ui.StyleLabel.Render("Vault initialized")))
 		fmt.Println()

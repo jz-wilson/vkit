@@ -75,13 +75,18 @@ func titleFromFilename(relPath string) string {
 
 // Creator is the seam between the note package and its callers.
 // Use New() to obtain the appropriate implementation for the current host.
+// Create returns the resolved vault-relative path (with .md and any folder
+// routing applied) so callers can display exactly where the note landed.
 type Creator interface {
-	Create(vault, relPath, title string, tags []string, today string) error
+	Create(vault, relPath, title string, tags []string, today string) (string, error)
 }
+
+// DeriveTitle converts a vault-relative relPath to a Title Case title.
+func DeriveTitle(relPath string) string { return titleFromFilename(relPath) }
 
 type portableCreator struct{}
 
-func (portableCreator) Create(vault, relPath, title string, tags []string, today string) error {
+func (portableCreator) Create(vault, relPath, title string, tags []string, today string) (string, error) {
 	// Apply the vault's configured default note folder when the caller gave a
 	// bare filename with no directory component. "current" has no CLI meaning
 	// so it falls back to root (empty folder = no prefix).
@@ -90,13 +95,13 @@ func (portableCreator) Create(vault, relPath, title string, tags []string, today
 			relPath = folder + "/" + relPath
 		}
 	}
-	return Create(vault, relPath, title, tags, today)
+	return ensureMD(relPath), Create(vault, relPath, title, tags, today)
 }
 
 type nativeCreator struct{}
 
-func (nativeCreator) Create(vault, relPath, title string, tags []string, today string) error {
-	return CreateNative(vault, relPath, title, tags, today)
+func (nativeCreator) Create(vault, relPath, title string, tags []string, today string) (string, error) {
+	return ensureMD(relPath), CreateNative(vault, relPath, title, tags, today)
 }
 
 // New returns the appropriate Creator for the current host.

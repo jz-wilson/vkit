@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -22,20 +24,16 @@ var syncCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		fmt.Println(ui.Section("🔄", "Sync"))
+
 		n, err := moc.Build(vault, vaultpath.Today())
 		if err != nil {
 			return err
 		}
-		fmt.Println(ui.Line("🔄", ui.OK(fmt.Sprintf("Rebuilt MOC.md (%d notes)", n))))
+		fmt.Println(ui.Step(true, fmt.Sprintf("Rebuilt MOC.md (%d notes)", n)))
 
-		// Show status first.
-		_ = git(vault, "status", "--short")
-
-		// Stage ONLY documentation assets — never `git add -A`. Always stage the
-		// *.md glob and MOC.md; only include named dirs that exist so a missing dir
-		// can't abort the whole git add (git treats a missing literal pathspec as fatal).
-		// This set mirrors scaffold.contentDirs minus "archive" (archived notes are
-		// not staged by sync — they are committed explicitly when archived).
+		// Stage ONLY documentation assets — never `git add -A`.
 		addArgs := []string{"add", "--", "*.md", "MOC.md"}
 		for _, d := range []string{"decisions", "infrastructure", "projects", "reference"} {
 			if fi, err := os.Stat(filepath.Join(vault, d)); err == nil && fi.IsDir() {
@@ -44,17 +42,33 @@ var syncCmd = &cobra.Command{
 		}
 		_ = git(vault, addArgs...)
 
+		if stagedStr, err := gitOutput(vault, "diff", "--cached", "--name-only"); err == nil && stagedStr != "" {
+			lines := strings.Split(stagedStr, "\n")
+			fmt.Println(ui.Step(true, fmt.Sprintf("Staged %d files", len(lines))))
+			for _, f := range lines {
+				if f != "" {
+					fmt.Println("    " + ui.Dim(f))
+				}
+			}
+		}
+
 		msg := syncMsg
 		if msg == "" {
 			msg = "vault: sync"
 		}
 		if err := gitCommit(vault, msg, false); err != nil {
-			fmt.Fprintln(os.Stderr, ui.Fail("nothing committed (no staged changes?)"))
+			fmt.Fprintln(os.Stderr, ui.Step(false, "nothing committed (no staged changes?)"))
 			return nil
 		}
-		fmt.Println(ui.OK(fmt.Sprintf("Committed: %s", ui.Dim(msg))))
+		fmt.Println(ui.Step(true, "Committed: "+ui.Dim(msg)))
 		return nil
 	},
+}
+
+func gitOutput(vault string, args ...string) (string, error) {
+	full := append([]string{"-C", vault}, args...)
+	out, err := exec.Command("git", full...).Output()
+	return strings.TrimSpace(string(out)), err
 }
 
 func init() {

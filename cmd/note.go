@@ -36,13 +36,25 @@ var noteCmd = &cobra.Command{
 		today := vaultpath.Today()
 
 		creator := note.New(vault)
-		if err := creator.Create(vault, relPath, noteTitle, tags, today); err != nil {
+		resolvedPath, err := creator.Create(vault, relPath, noteTitle, tags, today)
+		if err != nil {
 			return err
 		}
-		if _, err := moc.Build(vault, today); err != nil {
+		n, err := moc.Build(vault, today)
+		if err != nil {
 			return err
 		}
-		fmt.Println(ui.Line("📝", ui.OK("Created "+ui.Dim(relPath))))
+		title := noteTitle
+		if title == "" {
+			title = note.DeriveTitle(relPath)
+		}
+		fmt.Println(ui.Section("📝", "Note created"))
+		fmt.Println(ui.Step(true, ui.Dim(resolvedPath)))
+		fmt.Println(ui.Row("title", title))
+		if len(tags) > 0 {
+			fmt.Println(ui.Row("tags", "["+strings.Join(tags, ", ")+"]"))
+		}
+		fmt.Println(ui.Step(true, fmt.Sprintf("MOC rebuilt (%d notes)", n)))
 		return nil
 	},
 }
