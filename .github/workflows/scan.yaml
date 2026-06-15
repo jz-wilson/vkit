@@ -1,0 +1,47 @@
+name: Code Scan
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  semgrep:
+    runs-on: arc-runner-vkit
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Semgrep SAST
+        run: |
+          pip3 install --break-system-packages semgrep==1.90.0
+          semgrep scan --config auto --error --sarif --output semgrep.sarif || true
+  trivy:
+    runs-on: arc-runner-vkit
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy (vuln + secrets + IaC)
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          trivy fs --scanners vuln,secret,misconfig --exit-code 0 --format table .
+  sonar:
+    runs-on: arc-runner-vkit
+    continue-on-error: true
+    needs: [semgrep, trivy]
+    if: ${{ !cancelled() }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Go test + coverage
+        run: go test -coverprofile=coverage.out ./...
+      - name: SonarScanner
+        run: |
+          sudo apt-get install -y --no-install-recommends default-jre-headless
+          curl -sSLo sonar-scanner.zip \
+            https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610.zip
+          unzip -q sonar-scanner.zip
+          ./sonar-scanner-6.2.1.4610/bin/sonar-scanner \
+            -Dsonar.host.url=http://sonarqube-sonarqube.sonarqube.svc.cluster.local:9000
