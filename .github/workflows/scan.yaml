@@ -35,7 +35,8 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version-file: 'go.mod'
+          check-latest: true
       - name: Go test + coverage
         run: go test -coverprofile=coverage.out ./...
       - name: SonarScanner

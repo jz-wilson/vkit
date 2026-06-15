@@ -1,6 +1,6 @@
 module github.com/jz-wilson/vkit
 
-go 1.23.0
+go 1.23
 
 require (
 	github.com/charmbracelet/lipgloss v1.1.0
