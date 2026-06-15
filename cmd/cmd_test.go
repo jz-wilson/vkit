@@ -29,6 +29,7 @@ func vault(t *testing.T) string {
 	v := t.TempDir()
 	writeNote(t, v, "_format.md", "# format\n")
 	t.Setenv("VKIT_VAULT", v)
+	t.Setenv("VAULT_OBSIDIAN_CLI", "0") // no Obsidian running in tests; force Tier B
 	return v
 }
 

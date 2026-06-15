@@ -7,7 +7,6 @@ package osdetect
 import (
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
 )
@@ -20,11 +19,12 @@ var pkgMgrOrder = []string{"brew", "apt-get", "dnf", "pacman", "zypper", "winget
 
 // Info is a snapshot of the host environment for `vkit doctor`.
 type Info struct {
-	OS          string // macos | linux | wsl | windows | unknown
-	PkgMgr      string // one of pkgMgrOrder, or "none"
-	SystemdUser bool
-	HasTTY      bool
-	ObsidianCLI bool
+	OS             string // macos | linux | wsl | windows | unknown
+	PkgMgr         string // one of pkgMgrOrder, or "none"
+	SystemdUser    bool
+	HasTTY         bool
+	ObsidianCLI    bool // opt-in enabled (marker/env-var present)
+	ObsidianBinary bool // `obsidian` binary found on PATH
 }
 
 // DetectOS returns one of macos/linux/wsl/windows/unknown. On Linux it reads
@@ -93,26 +93,30 @@ func HasTTY() bool {
 	return true
 }
 
-// ObsidianEnabled reports whether native Obsidian mode is opted into, via the
-// $VAULT_OBSIDIAN_CLI=1 env var or a .obsidian-cli-enabled marker in the vault.
+// ObsidianEnabled reports whether native Obsidian mode is active. It enables
+// automatically when the obsidian binary is on PATH; set VAULT_OBSIDIAN_CLI=0
+// to disable explicitly.
 func ObsidianEnabled(vault string) bool {
-	if os.Getenv("VAULT_OBSIDIAN_CLI") == "1" {
-		return true
-	}
-	if vault == "" {
+	if os.Getenv("VAULT_OBSIDIAN_CLI") == "0" {
 		return false
 	}
-	_, err := os.Stat(filepath.Join(vault, ".obsidian-cli-enabled"))
+	return obsidianBinaryFound(lookPath)
+}
+
+func obsidianBinaryFound(look func(string) (string, error)) bool {
+	_, err := look("obsidian")
 	return err == nil
 }
 
 // Detect builds a full Info snapshot.
 func Detect(vault string) Info {
+	binary := obsidianBinaryFound(lookPath)
 	return Info{
-		OS:          DetectOS(),
-		PkgMgr:      DetectPkgMgr(),
-		SystemdUser: HasSystemdUser(),
-		HasTTY:      HasTTY(),
-		ObsidianCLI: ObsidianEnabled(vault),
+		OS:             DetectOS(),
+		PkgMgr:         DetectPkgMgr(),
+		SystemdUser:    HasSystemdUser(),
+		HasTTY:         HasTTY(),
+		ObsidianCLI:    binary && os.Getenv("VAULT_OBSIDIAN_CLI") != "0",
+		ObsidianBinary: binary,
 	}
 }

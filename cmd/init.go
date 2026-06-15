@@ -61,17 +61,20 @@ var initCmd = &cobra.Command{
 		fmt.Printf("  OS:       %s\n", info.OS)
 		fmt.Printf("  Vault:    %s\n", vault)
 		fmt.Printf("  Index:    MOC.md (%d notes)\n", n)
-		fmt.Printf("  Obsidian: %s\n", obsidianStatus(info, vault))
+		fmt.Printf("  Obsidian: %s\n", obsidianStatus(info))
 		fmt.Printf("\nKeep the index fresh with `vkit watch --vault %s` (or install a\nservice from %s).\n", vault, filepath.Join(vault, "services"))
 		return nil
 	},
 }
 
-func obsidianStatus(info osdetect.Info, vault string) string {
+func obsidianStatus(info osdetect.Info) string {
 	if info.ObsidianCLI {
-		return "native mode ENABLED (.obsidian-cli-enabled present)"
+		return "native mode ENABLED (obsidian binary found)"
 	}
-	return "portable core (default). Enable native mode: touch " + filepath.Join(vault, ".obsidian-cli-enabled")
+	if info.ObsidianBinary {
+		return "native mode disabled (set VAULT_OBSIDIAN_CLI=0 removed to re-enable)"
+	}
+	return "portable core (obsidian binary not found — install from https://obsidian.md/cli)"
 }
 
 func git(vault string, args ...string) error {

@@ -5,6 +5,23 @@ import (
 	"testing"
 )
 
+func TestObsidianBinaryFound(t *testing.T) {
+	present := func(name string) (string, error) {
+		if name == "obsidian" {
+			return "/usr/local/bin/obsidian", nil
+		}
+		return "", errors.New("not found")
+	}
+	absent := func(string) (string, error) { return "", errors.New("not found") }
+
+	if !obsidianBinaryFound(present) {
+		t.Error("expected binary found when obsidian on PATH")
+	}
+	if obsidianBinaryFound(absent) {
+		t.Error("expected binary not found when obsidian absent")
+	}
+}
+
 func TestDetectOSFrom(t *testing.T) {
 	cases := []struct {
 		goos, proc, want string
