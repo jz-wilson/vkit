@@ -27,7 +27,7 @@ on `PATH` for commit-time validation and the watcher service to work.
 | `vkit watch [--poll] [--interval N]` | Rebuild `MOC.md` on every change (fsnotify, polling fallback). |
 | `vkit validate [--staged] [files...]` | Validate note frontmatter. `--staged` is the pre-commit hook mode. |
 | `vkit note <path> [--title T] [--tags a,b]` | Scaffold a note from the schema (refuses to overwrite). |
-| `vkit rename <old> <new>` | Link-safe rename/move: scan inbound `[[links]]`, `git mv`, rewrite them. |
+| `vkit rename <old> <new>` | Link-safe rename/move: `git mv` first (clean abort on failure), then rewrite inbound `[[links]]`. |
 | `vkit sync [-m msg]` | Rebuild the index and commit docs only (never `git add -A`). |
 | `vkit doctor` | Print detected OS / pkgmgr / systemd / tty / Obsidian state. |
 | `vkit version` | Print the build version (`--version` also works). |
@@ -35,6 +35,11 @@ on `PATH` for commit-time validation and the watcher service to work.
 `--vault` (persistent flag) overrides vault discovery, which otherwise checks, in
 order: a positional path arg, `$VKIT_VAULT`, a walk-up search for the `_format.md`
 marker, then `$HOME/vault`.
+
+**Known limitation — `vkit rename`:** the `git mv` succeeds before link rewrites
+begin. If a link rewrite fails mid-scan (e.g. a read-only file), the note is already
+moved and some links may be only partially rewritten. Re-run `rename` from the new
+path to retry.
 
 ## Update model
 

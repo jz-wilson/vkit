@@ -48,7 +48,16 @@ func Rename(vault, oldRel, newRel string) ([]string, error) {
 		rules = append(rules, rule{linkRe(oldBase), "[[" + newBase + "${1}"})
 	}
 
+	// git mv before the link scan: if gitMv fails the vault is still clean.
+	if err := os.MkdirAll(filepath.Dir(filepath.Join(vault, newRel)), 0o755); err != nil {
+		return nil, err
+	}
+	if err := gitMv(vault, oldRel, newRel); err != nil {
+		return nil, err
+	}
+
 	touched := map[string]bool{}
+	touched[newRel] = true
 
 	// Scan every note for inbound links and rewrite in place.
 	err := filepath.WalkDir(vault, func(path string, d fs.DirEntry, err error) error {
@@ -85,15 +94,6 @@ func Rename(vault, oldRel, newRel string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// Ensure destination dir exists, then git mv (preserves history).
-	if err := os.MkdirAll(filepath.Dir(filepath.Join(vault, newRel)), 0o755); err != nil {
-		return nil, err
-	}
-	if err := gitMv(vault, oldRel, newRel); err != nil {
-		return nil, err
-	}
-	touched[newRel] = true
 
 	out := make([]string, 0, len(touched))
 	for f := range touched {

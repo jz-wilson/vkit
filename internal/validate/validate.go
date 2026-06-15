@@ -71,30 +71,58 @@ func checkFile(rel, path string) []Problem {
 		probs = append(probs, Problem{rel, "frontmatter must start at line 1"})
 	}
 
-	hasUpdated := false
-	h1 := 0
-	for _, line := range lines {
-		if strings.HasPrefix(line, "updated:") {
-			hasUpdated = true
+	// Locate the closing "---" of the frontmatter block.
+	fmEnd := -1
+	if len(lines) > 0 && lines[0] == "---" {
+		for i := 1; i < len(lines); i++ {
+			if lines[i] == "---" {
+				fmEnd = i
+				break
+			}
 		}
-		if strings.HasPrefix(line, "# ") {
-			h1++
+	}
+
+	// Check updated: only within frontmatter.
+	hasUpdated := false
+	if fmEnd > 0 {
+		for _, line := range lines[1:fmEnd] {
+			if strings.HasPrefix(line, "updated:") {
+				hasUpdated = true
+				break
+			}
 		}
 	}
 	if !hasUpdated {
 		probs = append(probs, Problem{rel, "missing 'updated:' frontmatter"})
 	}
-	if h1 != 1 {
-		probs = append(probs, Problem{rel, "expected exactly one H1, found " + strconv.Itoa(h1)})
-	}
 
-	// crude absolute-path check (ignores lines that are fence markers)
-	for _, line := range lines {
-		if absPathRe.MatchString(line) && !strings.Contains(line, "```") {
+	// Check H1 count and absolute paths in the body.
+	// H1 count is fence-aware (# inside a code fence is not a heading).
+	// Abs-path check matches bash hook behavior: fires inside fences too, but
+	// skips the fence marker line itself (which may carry an info string with a path).
+	bodyStart := fmEnd + 1
+	if bodyStart < 0 {
+		bodyStart = 0
+	}
+	h1 := 0
+	inFence := false
+	for _, line := range lines[bodyStart:] {
+		if strings.HasPrefix(line, "```") {
+			inFence = !inFence
+			continue // skip fence marker lines for both H1 and abs-path
+		}
+		if !inFence && strings.HasPrefix(line, "# ") {
+			h1++
+		}
+		if absPathRe.MatchString(line) {
 			probs = append(probs, Problem{rel, "absolute path in body — use [[wikilinks]]"})
 			break
 		}
 	}
+	if h1 != 1 {
+		probs = append(probs, Problem{rel, "expected exactly one H1, found " + strconv.Itoa(h1)})
+	}
+
 	return probs
 }
 

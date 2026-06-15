@@ -16,8 +16,6 @@ builds:
       - CGO_ENABLED=0
     flags:
       - -trimpath
-    # NOTE: main.version does not exist in the source yet, so this -X is a no-op
-    # until a `var version = "dev"` is added to package main. See follow-ups.
     ldflags:
       - -s -w -X main.version={{.Version}}
     goos:

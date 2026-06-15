@@ -60,7 +60,8 @@ func collectNotes(vault string) ([]string, error) {
 	return rels, err
 }
 
-// firstH1 returns the text after the first "# " line, or "" if none.
+// firstH1 returns the text after the first "# " line in the body (after
+// frontmatter), skipping lines inside code fences.
 func firstH1(path string) string {
 	f, err := os.Open(path)
 	if err != nil {
@@ -69,9 +70,29 @@ func firstH1(path string) string {
 	defer f.Close()
 	sc := bufio.NewScanner(f)
 	sc.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+
+	// Skip frontmatter if present; otherwise check the first line for H1.
+	if sc.Scan() {
+		first := sc.Text()
+		if first == "---" {
+			for sc.Scan() {
+				if sc.Text() == "---" {
+					break
+				}
+			}
+		} else if strings.HasPrefix(first, "# ") {
+			return strings.TrimSpace(strings.TrimPrefix(first, "# "))
+		}
+	}
+
+	inFence := false
 	for sc.Scan() {
 		line := sc.Text()
-		if strings.HasPrefix(line, "# ") {
+		if strings.HasPrefix(line, "```") {
+			inFence = !inFence
+			continue
+		}
+		if !inFence && strings.HasPrefix(line, "# ") {
 			return strings.TrimSpace(strings.TrimPrefix(line, "# "))
 		}
 	}

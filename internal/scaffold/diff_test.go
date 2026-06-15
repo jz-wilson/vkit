@@ -200,24 +200,10 @@ func TestPromptDiffBranch(t *testing.T) {
 	}
 }
 
-// TestCustomizeStreamBufferingQuirk characterizes a LATENT BUFFERING QUIRK in
-// the production code, NOT a regression introduced here.
-//
-// promptMenu wraps `in` in its own bufio.NewReader; customize() then wraps the
-// SAME underlying `in` in a SECOND, independent bufio.NewReader. When the whole
-// script is supplied as one buffered stream (a pipe, or strings.Reader in a
-// test), promptMenu's bufio reader reads ahead and swallows the per-file answers
-// while consuming the "c\n" menu choice. customize()'s fresh reader then sees
-// EOF, so every ask() returns false and every file is declined — regardless of
-// the y/N bytes that followed "c".
-//
-// With a real interactive TTY this does not bite: each ReadString('\n') returns
-// as soon as the user presses Enter, so promptMenu's reader does not race ahead
-// of the customize prompts. The quirk is observable only with buffered input.
-//
-// This test pins the current (buffered) behavior: "c\ny\ny\ny\n" still declines
-// everything, leaving the changed tier2 file as a Keep.
-func TestCustomizeStreamBufferingQuirk(t *testing.T) {
+// TestCustomizeAppliesAll verifies that "c\ny\ny\ny\n" applies tooling, new
+// template, and overwrite in sequence via a single shared bufio.Reader — the
+// former double-reader bug that caused the "y" answers to be swallowed is fixed.
+func TestCustomizeAppliesAll(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer
 	res, err := Update(v, ModePrompt, false, strings.NewReader("c\ny\ny\ny\n"), &out, true)
@@ -227,29 +213,31 @@ func TestCustomizeStreamBufferingQuirk(t *testing.T) {
 	if res.Action != "customize" {
 		t.Fatalf("res=%+v", res)
 	}
-	// Despite three "y" answers, the second bufio reader sees EOF -> all declined.
-	if res.Tool != 0 || res.New != 0 || res.Over != 0 || res.Keep != 1 {
-		t.Fatalf("res=%+v want Tool=0 New=0 Over=0 Keep=1 (buffering quirk)", res)
+	if res.Tool != 1 || res.New != 1 || res.Over != 1 || res.Keep != 0 {
+		t.Fatalf("res=%+v want Tool=1 New=1 Over=1 Keep=0", res)
 	}
-	// .gitignore untouched (declined), CLAUDE.md untouched (declined, Keep).
-	if strings.Contains(read(t, filepath.Join(v, ".gitignore")), ".moc-stamp") {
-		t.Error(".gitignore refreshed despite buffering quirk declining it")
+	// .gitignore refreshed (tooling).
+	if strings.Contains(read(t, filepath.Join(v, ".gitignore")), "# custom ignore") {
+		t.Error(".gitignore not refreshed")
 	}
-	if read(t, filepath.Join(v, "CLAUDE.md")) != "# my custom claude\n" {
-		t.Error("CLAUDE.md modified despite buffering quirk declining it")
+	// note.md created (new).
+	if !exists2(filepath.Join(v, ".claude", "commands", "note.md")) {
+		t.Error("note.md not created")
 	}
-	if exists2(filepath.Join(v, "CLAUDE.md.bak")) {
-		t.Error("no .bak should exist when everything is declined")
+	// CLAUDE.md overwritten with .bak preserved.
+	if read(t, filepath.Join(v, "CLAUDE.md")) == "# my custom claude\n" {
+		t.Error("CLAUDE.md not overwritten")
 	}
-	if exists2(filepath.Join(v, ".claude", "commands", "note.md")) {
-		t.Error("note.md created despite buffering quirk declining it")
+	if !exists2(filepath.Join(v, "CLAUDE.md.bak")) {
+		t.Error("CLAUDE.md.bak not created")
+	}
+	if read(t, filepath.Join(v, "CLAUDE.md.bak")) != "# my custom claude\n" {
+		t.Error("CLAUDE.md.bak does not contain pre-overwrite content")
 	}
 }
 
-// TestCustomizeDeclineKeeps characterizes that the changed tier2 file is counted
-// as Keep and left untouched when customize declines it. (Per the buffering
-// quirk above, the trailing "n" answers are actually swallowed, so this is the
-// same code path as TestCustomizeStreamBufferingQuirk reached via explicit n's.)
+// TestCustomizeDeclineKeeps verifies that "n" answers in customize leave T2Change
+// files as Keep and do not touch them.
 func TestCustomizeDeclineKeeps(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer

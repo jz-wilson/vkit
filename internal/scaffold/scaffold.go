@@ -63,9 +63,9 @@ func (e Eval) Empty() bool {
 
 // Result summarizes an applied (or skipped) update.
 type Result struct {
-	AlreadyMatches bool
-	DryRun         bool
-	Action         string // apply | safe | customize | quit
+	AlreadyMatches        bool
+	DryRun                bool
+	Action                string // apply | safe | customize | quit
 	Tool, New, Over, Keep int
 }
 
@@ -194,7 +194,8 @@ func Update(vault string, mode Mode, dryRun bool, in io.Reader, out io.Writer, h
 		return Result{DryRun: true}, nil
 	}
 
-	action := decideAction(mode, e, vault, in, out, hasTTY)
+	r := bufio.NewReader(in)
+	action := decideAction(mode, e, vault, r, out, hasTTY)
 	res := Result{Action: action}
 	switch action {
 	case "apply":
@@ -203,7 +204,7 @@ func Update(vault string, mode Mode, dryRun bool, in io.Reader, out io.Writer, h
 		res.Tool, res.New = applyCopies(vault, e.T1Change), applyCopies(vault, e.T2New)
 		res.Keep = len(e.T2Change)
 	case "customize":
-		res = customize(vault, e, in, out)
+		res = customize(vault, e, r, out)
 		res.Action = "customize"
 	case "quit":
 		fmt.Fprintln(out, "==> no changes made.")
@@ -211,7 +212,7 @@ func Update(vault string, mode Mode, dryRun bool, in io.Reader, out io.Writer, h
 	return res, nil
 }
 
-func decideAction(mode Mode, e Eval, vault string, in io.Reader, out io.Writer, hasTTY bool) string {
+func decideAction(mode Mode, e Eval, vault string, r *bufio.Reader, out io.Writer, hasTTY bool) string {
 	switch mode {
 	case ModeForce:
 		return "apply"
@@ -222,12 +223,11 @@ func decideAction(mode Mode, e Eval, vault string, in io.Reader, out io.Writer, 
 			fmt.Fprintln(out, "==> non-interactive, no flag — changing nothing. Re-run with --force (all) or --keep (tooling + new templates only).")
 			return "quit"
 		}
-		return promptMenu(e, vault, in, out)
+		return promptMenu(e, vault, r, out)
 	}
 }
 
-func promptMenu(e Eval, vault string, in io.Reader, out io.Writer) string {
-	r := bufio.NewReader(in)
+func promptMenu(e Eval, vault string, r *bufio.Reader, out io.Writer) string {
 	for {
 		fmt.Fprint(out, "Apply? [a]ll / [s]afe (skip your changed templates) / [c]ustomize / [d]iff / [q]uit  (default: quit): ")
 		line, err := r.ReadString('\n')
@@ -290,8 +290,7 @@ func overwriteWithBak(vault, rel string, out io.Writer) {
 	fmt.Fprintf(out, "    overwrote %s (backup: %s.bak)\n", rel, rel)
 }
 
-func customize(vault string, e Eval, in io.Reader, out io.Writer) Result {
-	r := bufio.NewReader(in)
+func customize(vault string, e Eval, r *bufio.Reader, out io.Writer) Result {
 	ask := func(label string) bool {
 		fmt.Fprintf(out, "  apply %s? [y/N]: ", label)
 		line, _ := r.ReadString('\n')
