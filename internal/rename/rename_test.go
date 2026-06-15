@@ -44,7 +44,6 @@ func TestRenameRewritesLinks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// moved on disk
 	if _, err := os.Stat(filepath.Join(v, "renamed.md")); err != nil {
 		t.Error("renamed.md not present")
 	}
@@ -52,28 +51,103 @@ func TestRenameRewritesLinks(t *testing.T) {
 		t.Error("old.md still present")
 	}
 
-	// links rewritten, alias/heading preserved
 	linker, _ := os.ReadFile(filepath.Join(v, "projects", "linker.md"))
 	want := "see [[renamed]] and [[renamed|alias]] and [[renamed#section]].\n"
 	if string(linker) != want {
 		t.Errorf("linker = %q want %q", linker, want)
 	}
 
-	// [[older]] must NOT be rewritten (boundary respected)
 	nolink, _ := os.ReadFile(filepath.Join(v, "projects", "nolink.md"))
 	if !strings.Contains(string(nolink), "[[older]]") {
 		t.Errorf("boundary failure, [[older]] changed: %s", nolink)
 	}
 
-	// touched contains the new path and the linker
 	joined := strings.Join(touched, ",")
 	if !strings.Contains(joined, "renamed.md") || !strings.Contains(joined, "projects/linker.md") {
 		t.Errorf("touched = %v", touched)
 	}
 
-	// git knows about the move (renamed.md is staged/tracked)
 	out, _ := exec.Command("git", "-C", v, "ls-files", "renamed.md").Output()
 	if strings.TrimSpace(string(out)) != "renamed.md" {
 		t.Errorf("git mv not applied, ls-files: %q", out)
+	}
+}
+
+func TestLinkRewriterRewrite(t *testing.T) {
+	rw := LinkRewriter{}
+
+	tests := []struct {
+		name    string
+		content string
+		oldStem string
+		newStem string
+		want    string
+	}{
+		{
+			name:    "bare link rewritten",
+			content: "see [[old-note]] here",
+			oldStem: "old-note",
+			newStem: "new-note",
+			want:    "see [[new-note]] here",
+		},
+		{
+			name:    "link with alias rewritten",
+			content: "see [[old-note|My Alias]] here",
+			oldStem: "old-note",
+			newStem: "new-note",
+			want:    "see [[new-note|My Alias]] here",
+		},
+		{
+			name:    "link with section rewritten",
+			content: "see [[old-note#Introduction]] here",
+			oldStem: "old-note",
+			newStem: "new-note",
+			want:    "see [[new-note#Introduction]] here",
+		},
+		{
+			name:    "unrelated link unchanged",
+			content: "see [[unrelated]] here",
+			oldStem: "old-note",
+			newStem: "new-note",
+			want:    "see [[unrelated]] here",
+		},
+		{
+			name:    "prefix boundary — [[older]] not rewritten when stem is old",
+			content: "[[older]] stays",
+			oldStem: "old",
+			newStem: "new",
+			want:    "[[older]] stays",
+		},
+		{
+			name:    "multiple occurrences all rewritten",
+			content: "[[old-note]] and again [[old-note|alias]] and [[old-note#sec]]",
+			oldStem: "old-note",
+			newStem: "new-note",
+			want:    "[[new-note]] and again [[new-note|alias]] and [[new-note#sec]]",
+		},
+		{
+			name:    "path stem — basename form rewritten",
+			content: "[[old-note]] and [[folder/old-note]]",
+			oldStem: "folder/old-note",
+			newStem: "folder/new-note",
+			want:    "[[new-note]] and [[folder/new-note]]",
+		},
+		{
+			name:    "content with no links unchanged",
+			content: "no wiki links at all",
+			oldStem: "old-note",
+			newStem: "new-note",
+			want:    "no wiki links at all",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := rw.Rewrite(tc.content, tc.oldStem, tc.newStem)
+			if got != tc.want {
+				t.Errorf("Rewrite(%q, %q, %q)\n  got  %q\n  want %q",
+					tc.content, tc.oldStem, tc.newStem, got, tc.want)
+			}
+		})
 	}
 }
