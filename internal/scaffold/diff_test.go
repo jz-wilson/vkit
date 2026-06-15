@@ -179,7 +179,7 @@ func TestPromptDiffBranch(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer
 	// "d" prints diffs, then "q" quits with no changes.
-	res, err := Update(v, ModePrompt, false, strings.NewReader("d\nq\n"), &out, true)
+	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader("d\nq\n"), W: &out, HasTTY: true}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +206,7 @@ func TestPromptDiffBranch(t *testing.T) {
 func TestCustomizeAppliesAll(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer
-	res, err := Update(v, ModePrompt, false, strings.NewReader("c\ny\ny\ny\n"), &out, true)
+	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader("c\ny\ny\ny\n"), W: &out, HasTTY: true}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +241,7 @@ func TestCustomizeAppliesAll(t *testing.T) {
 func TestCustomizeDeclineKeeps(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer
-	res, err := Update(v, ModePrompt, false, strings.NewReader("c\nn\nn\nn\n"), &out, true)
+	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader("c\nn\nn\nn\n"), W: &out, HasTTY: true}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -261,7 +261,7 @@ func TestCustomizeDeclineKeeps(t *testing.T) {
 func TestPromptInvalidThenQuit(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer
-	res, err := Update(v, ModePrompt, false, strings.NewReader("z\nq\n"), &out, true)
+	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader("z\nq\n"), W: &out, HasTTY: true}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -277,7 +277,7 @@ func TestPromptInvalidThenQuit(t *testing.T) {
 func TestPromptEOFQuits(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer
-	res, err := Update(v, ModePrompt, false, strings.NewReader(""), &out, true)
+	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader(""), W: &out, HasTTY: true}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}

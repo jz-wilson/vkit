@@ -33,9 +33,9 @@ var excludedDirs = map[string]bool{
 // skipNames are markdown files that are never treated as notes (generated or
 // meta files).
 var skipNames = map[string]bool{
-	"MOC.md":    true,
-	"CLAUDE.md": true,
-	"AGENTS.md": true,
+	"MOC.md":     true,
+	"CLAUDE.md":  true,
+	"AGENTS.md":  true,
 	"_format.md": true,
 }
 
@@ -122,6 +122,26 @@ func IsNote(rel string) bool {
 	}
 	base := parts[len(parts)-1]
 	if skipNames[base] {
+		return false
+	}
+	return true
+}
+
+// ClassifyOpts configures optional filtering on top of the base IsNote check.
+type ClassifyOpts struct {
+	// SkipREADME causes README.md files to be excluded even when they would
+	// otherwise pass IsNote (e.g. validate skips them; moc does not).
+	SkipREADME bool
+}
+
+// ClassifyFile returns true when path is a note that should be processed under
+// the given options. It returns false if IsNote returns false, or if
+// opts.SkipREADME is true and the basename is "README.md".
+func ClassifyFile(path string, opts ClassifyOpts) bool {
+	if !IsNote(path) {
+		return false
+	}
+	if opts.SkipREADME && filepath.Base(filepath.ToSlash(path)) == "README.md" {
 		return false
 	}
 	return true

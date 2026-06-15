@@ -37,11 +37,12 @@ var updateCmd = &cobra.Command{
 		}
 
 		// have_tty(): a real /dev/tty must be openable for the prompt to run.
-		hasTTY := osdetect.HasTTY()
+		hasTTY := osdetect.Detect("").HasTTY
 		in, closeIn := promptInput(hasTTY)
 		defer closeIn()
 
-		res, err := scaffold.Update(vault, mode, updDryRun, in, os.Stdout, hasTTY)
+		decider := &scaffold.InteractiveDecider{R: in, W: os.Stdout, HasTTY: hasTTY, Vault: vault}
+		res, err := scaffold.Update(vault, mode, updDryRun, decider, os.Stdout)
 		if err != nil {
 			return err
 		}

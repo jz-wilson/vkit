@@ -244,3 +244,18 @@ func TestCreateNativeExecFailure(t *testing.T) {
 		t.Errorf("expected 1 exec call before error, got %d", count)
 	}
 }
+
+func TestNew_returnsPortableWhenDisabled(t *testing.T) {
+	t.Setenv("VAULT_OBSIDIAN_CLI", "0")
+	v := t.TempDir()
+	creator := New(v)
+	// Verify we get a portableCreator by exercising its Create path — it must
+	// write the file to disk (nativeCreator would invoke the obsidian binary).
+	if err := creator.Create(v, "test-new.md", "Test New", nil, "2026-06-15"); err != nil {
+		t.Fatalf("Create failed: %v", err)
+	}
+	mdPath := filepath.Join(v, "test-new.md")
+	if _, err := os.Stat(mdPath); err != nil {
+		t.Fatalf("expected file on disk at %s, got: %v", mdPath, err)
+	}
+}

@@ -68,6 +68,37 @@ func titleFromFilename(relPath string) string {
 	return strings.Join(parts, " ")
 }
 
+// Creator is the seam between the note package and its callers.
+// Use New() to obtain the appropriate implementation for the current host.
+type Creator interface {
+	Create(vault, relPath, title string, tags []string, today string) error
+}
+
+type portableCreator struct{}
+
+func (portableCreator) Create(vault, relPath, title string, tags []string, today string) error {
+	return Create(vault, relPath, title, tags, today)
+}
+
+type nativeCreator struct{}
+
+func (nativeCreator) Create(vault, relPath, title string, tags []string, today string) error {
+	return CreateNative(vault, relPath, title, tags, today)
+}
+
+// New returns the appropriate Creator for the current host.
+// nativeCreator is returned when the obsidian binary is on PATH and
+// VAULT_OBSIDIAN_CLI is not "0"; otherwise portableCreator is returned.
+func New(vault string) Creator {
+	if os.Getenv("VAULT_OBSIDIAN_CLI") == "0" {
+		return portableCreator{}
+	}
+	if _, err := exec.LookPath("obsidian"); err == nil {
+		return nativeCreator{}
+	}
+	return portableCreator{}
+}
+
 type execFunc func(vault string, args ...string) error
 
 // createNative is the testable core of CreateNative — accepts an exec hook so

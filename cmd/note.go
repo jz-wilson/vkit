@@ -8,7 +8,6 @@ import (
 
 	"vkit/internal/moc"
 	"vkit/internal/note"
-	"vkit/internal/osdetect"
 	"vkit/internal/vaultpath"
 )
 
@@ -35,14 +34,9 @@ var noteCmd = &cobra.Command{
 		}
 		today := vaultpath.Today()
 
-		if osdetect.ObsidianEnabled(vault) {
-			if err := note.CreateNative(vault, relPath, noteTitle, tags, today); err != nil {
-				return err
-			}
-		} else {
-			if err := note.Create(vault, relPath, noteTitle, tags, today); err != nil {
-				return err
-			}
+		creator := note.New(vault)
+		if err := creator.Create(vault, relPath, noteTitle, tags, today); err != nil {
+			return err
 		}
 		if _, err := moc.Build(vault, today); err != nil {
 			return err

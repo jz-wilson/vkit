@@ -69,6 +69,53 @@ type Result struct {
 	Tool, New, Over, Keep int
 }
 
+// Decider resolves which action to take when mode is ModePrompt.
+// Implementations must return one of: "apply", "safe", "customize", "quit".
+// When the chosen action is "customize", Update will call back into the
+// decider via the customizer interface if it is also implemented.
+type Decider interface {
+	Choose(e Eval) (string, error)
+}
+
+// FixedDecider always returns the pre-mapped action for the given Mode; used in tests.
+type FixedDecider struct{ M Mode }
+
+func (f FixedDecider) Choose(_ Eval) (string, error) {
+	switch f.M {
+	case ModeForce:
+		return "apply", nil
+	case ModeKeep:
+		return "safe", nil
+	default:
+		return "quit", nil
+	}
+}
+
+// InteractiveDecider drives the readline prompt loop on a real TTY.
+// R and W are the terminal reader/writer; HasTTY gates prompting.
+// Vault is passed through to printDiffs so [d]iff output is correct.
+// buf is initialised lazily so that a single bufio.Reader is shared
+// between Choose (which reads the menu selection) and any subsequent
+// call that needs to keep reading from the same stream (e.g. customize).
+type InteractiveDecider struct {
+	R      io.Reader
+	W      io.Writer
+	HasTTY bool
+	Vault  string
+	buf    *bufio.Reader // lazily initialised; shared across Choose + customize
+}
+
+func (d *InteractiveDecider) reader() *bufio.Reader {
+	if d.buf == nil {
+		d.buf = bufio.NewReader(d.R)
+	}
+	return d.buf
+}
+
+func (d *InteractiveDecider) Choose(e Eval) (string, error) {
+	return decideAction(e, d.Vault, d.reader(), d.W, d.HasTTY), nil
+}
+
 // templateBytes reads an embedded template by its vault-relative path.
 func templateBytes(rel string) ([]byte, error) {
 	return templates.ReadFile("templates/" + rel)
@@ -181,7 +228,10 @@ func printEval(out io.Writer, vault string, e Eval) {
 
 // Update runs the full eval-first flow. in/out drive the interactive prompt;
 // hasTTY decides whether prompting is possible at all.
-func Update(vault string, mode Mode, dryRun bool, in io.Reader, out io.Writer, hasTTY bool) (Result, error) {
+// Update runs the full eval-first flow. When mode is ModePrompt, decider.Choose
+// is called to resolve the action interactively; otherwise mode wins directly.
+// Pass an InteractiveDecider for production use, FixedDecider in tests.
+func Update(vault string, mode Mode, dryRun bool, decider Decider, out io.Writer) (Result, error) {
 	e := Analyze(vault)
 	if e.Empty() {
 		fmt.Fprintf(out, "==> vault already matches the kit — nothing to update.\n")
@@ -194,8 +244,20 @@ func Update(vault string, mode Mode, dryRun bool, in io.Reader, out io.Writer, h
 		return Result{DryRun: true}, nil
 	}
 
-	r := bufio.NewReader(in)
-	action := decideAction(mode, e, vault, r, out, hasTTY)
+	var action string
+	switch mode {
+	case ModeForce:
+		action = "apply"
+	case ModeKeep:
+		action = "safe"
+	default: // ModePrompt — delegate to decider
+		var err error
+		action, err = decider.Choose(e)
+		if err != nil {
+			return Result{}, err
+		}
+	}
+
 	res := Result{Action: action}
 	switch action {
 	case "apply":
@@ -204,7 +266,9 @@ func Update(vault string, mode Mode, dryRun bool, in io.Reader, out io.Writer, h
 		res.Tool, res.New = applyCopies(vault, e.T1Change), applyCopies(vault, e.T2New)
 		res.Keep = len(e.T2Change)
 	case "customize":
-		res = customize(vault, e, r, out)
+		if id, ok := decider.(*InteractiveDecider); ok {
+			res = customize(vault, e, id.reader(), out)
+		}
 		res.Action = "customize"
 	case "quit":
 		fmt.Fprintln(out, "==> no changes made.")
@@ -212,19 +276,12 @@ func Update(vault string, mode Mode, dryRun bool, in io.Reader, out io.Writer, h
 	return res, nil
 }
 
-func decideAction(mode Mode, e Eval, vault string, r *bufio.Reader, out io.Writer, hasTTY bool) string {
-	switch mode {
-	case ModeForce:
-		return "apply"
-	case ModeKeep:
-		return "safe"
-	default: // prompt
-		if !hasTTY {
-			fmt.Fprintln(out, "==> non-interactive, no flag — changing nothing. Re-run with --force (all) or --keep (tooling + new templates only).")
-			return "quit"
-		}
-		return promptMenu(e, vault, r, out)
+func decideAction(e Eval, vault string, r *bufio.Reader, out io.Writer, hasTTY bool) string {
+	if !hasTTY {
+		fmt.Fprintln(out, "==> non-interactive, no flag — changing nothing. Re-run with --force (all) or --keep (tooling + new templates only).")
+		return "quit"
 	}
+	return promptMenu(e, vault, r, out)
 }
 
 func promptMenu(e Eval, vault string, r *bufio.Reader, out io.Writer) string {

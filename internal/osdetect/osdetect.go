@@ -27,9 +27,9 @@ type Info struct {
 	ObsidianBinary bool // `obsidian` binary found on PATH
 }
 
-// DetectOS returns one of macos/linux/wsl/windows/unknown. On Linux it reads
+// detectOS returns one of macos/linux/wsl/windows/unknown. On Linux it reads
 // /proc/version to distinguish WSL.
-func DetectOS() string {
+func detectOS() string {
 	var proc string
 	if b, err := os.ReadFile("/proc/version"); err == nil {
 		proc = string(b)
@@ -59,11 +59,7 @@ func isWSL(procVersion string) bool {
 	return strings.Contains(p, "microsoft") || strings.Contains(p, "wsl")
 }
 
-// DetectPkgMgr returns the first available package manager, or "none".
-func DetectPkgMgr() string {
-	return detectPkgMgr(lookPath)
-}
-
+// detectPkgMgr returns the first available package manager, or "none".
 func detectPkgMgr(look func(string) (string, error)) string {
 	for _, m := range pkgMgrOrder {
 		if _, err := look(m); err == nil {
@@ -73,8 +69,8 @@ func detectPkgMgr(look func(string) (string, error)) string {
 	return "none"
 }
 
-// HasSystemdUser reports whether a real systemd user instance is reachable.
-func HasSystemdUser() bool {
+// hasSystemdUser reports whether a real systemd user instance is reachable.
+func hasSystemdUser() bool {
 	if _, err := lookPath("systemctl"); err != nil {
 		return false
 	}
@@ -82,9 +78,9 @@ func HasSystemdUser() bool {
 	return cmd.Run() == nil
 }
 
-// HasTTY reports whether /dev/tty can actually be opened (it may be absent under
+// hasTTY reports whether /dev/tty can actually be opened (it may be absent under
 // CI / cron / nohup even when a controlling terminal nominally exists).
-func HasTTY() bool {
+func hasTTY() bool {
 	f, err := os.OpenFile("/dev/tty", os.O_WRONLY, 0)
 	if err != nil {
 		return false
@@ -93,10 +89,10 @@ func HasTTY() bool {
 	return true
 }
 
-// ObsidianEnabled reports whether native Obsidian mode is active. It enables
+// obsidianEnabled reports whether native Obsidian mode is active. It enables
 // automatically when the obsidian binary is on PATH; set VAULT_OBSIDIAN_CLI=0
 // to disable explicitly.
-func ObsidianEnabled(vault string) bool {
+func obsidianEnabled() bool {
 	if os.Getenv("VAULT_OBSIDIAN_CLI") == "0" {
 		return false
 	}
@@ -108,14 +104,14 @@ func obsidianBinaryFound(look func(string) (string, error)) bool {
 	return err == nil
 }
 
-// Detect builds a full Info snapshot.
+// Detect builds a full Info snapshot. It is the only exported entry point.
 func Detect(vault string) Info {
 	binary := obsidianBinaryFound(lookPath)
 	return Info{
-		OS:             DetectOS(),
-		PkgMgr:         DetectPkgMgr(),
-		SystemdUser:    HasSystemdUser(),
-		HasTTY:         HasTTY(),
+		OS:             detectOS(),
+		PkgMgr:         detectPkgMgr(lookPath),
+		SystemdUser:    hasSystemdUser(),
+		HasTTY:         hasTTY(),
 		ObsidianCLI:    binary && os.Getenv("VAULT_OBSIDIAN_CLI") != "0",
 		ObsidianBinary: binary,
 	}

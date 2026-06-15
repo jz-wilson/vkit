@@ -61,7 +61,7 @@ func TestAlreadyMatches(t *testing.T) {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
-	res, err := Update(v, ModeKeep, false, strings.NewReader(""), &out, false)
+	res, err := Update(v, ModeKeep, false, FixedDecider{M: ModeKeep}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func TestAlreadyMatches(t *testing.T) {
 func TestDryRun(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer
-	res, err := Update(v, ModeForce, true, strings.NewReader(""), &out, false)
+	res, err := Update(v, ModeForce, true, FixedDecider{M: ModeForce}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +95,7 @@ func TestDryRun(t *testing.T) {
 func TestKeep(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer
-	res, err := Update(v, ModeKeep, false, strings.NewReader(""), &out, false)
+	res, err := Update(v, ModeKeep, false, FixedDecider{M: ModeKeep}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestKeep(t *testing.T) {
 func TestForce(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer
-	res, err := Update(v, ModeForce, false, strings.NewReader(""), &out, false)
+	res, err := Update(v, ModeForce, false, FixedDecider{M: ModeForce}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
