@@ -41,7 +41,8 @@ var updateCmd = &cobra.Command{
 		in, closeIn := promptInput(hasTTY)
 		defer closeIn()
 
-		res, err := scaffold.Update(vault, mode, updDryRun, in, os.Stdout, hasTTY)
+		decider := &scaffold.InteractiveDecider{R: in, W: os.Stdout, HasTTY: hasTTY, Vault: vault}
+		res, err := scaffold.Update(vault, mode, updDryRun, decider, os.Stdout)
 		if err != nil {
 			return err
 		}
