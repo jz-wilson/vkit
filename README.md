@@ -8,14 +8,33 @@ runtime, and there are no `find`/`grep`/`fswatch`/`inotifywait` dependencies.
 
 ## Install
 
+**Recommended — `go install`** (requires Go 1.22+):
+
 ```bash
-go build -o vkit .          # local build
-# then put it on PATH, e.g.:
-install -m755 vkit ~/.local/bin/vkit
+go install github.com/jz-wilson/vkit@latest
 ```
 
-The pre-commit hook and the watcher services call `vkit` by name, so it must be
-on `PATH` for commit-time validation and the watcher service to work.
+**GitHub Releases** — download a pre-built binary from the [releases page](https://github.com/jz-wilson/vkit/releases) and place it on `PATH`.
+
+**From source:**
+
+```bash
+git clone https://github.com/jz-wilson/vkit
+cd vkit
+task install          # build + install to ~/.local/bin (requires https://taskfile.dev)
+# or without task:
+go build -o /tmp/vkit . && install -m755 /tmp/vkit ~/.local/bin/vkit
+```
+
+**Shell completion (zsh):**
+
+```bash
+task completion-zsh   # installs ~/.zfunc/_vkit
+# or manually: vkit completion zsh > ~/.zfunc/_vkit
+# then add to ~/.zshrc: fpath=(~/.zfunc $fpath) && autoload -Uz compinit && compinit
+```
+
+The pre-commit hook and watcher services call `vkit` by name — it must be on `PATH`.
 
 ## Commands
 
@@ -73,15 +92,17 @@ macOS, Linux, Windows) and falls back to a zero-dependency mtime poll
 
 ## Obsidian native mode
 
-Obsidian integration is **opt-in only** — the kit never probes the `obsidian`
-binary (that can launch the GUI). Enable it with a marker file:
+`vkit note` auto-detects the official [`obsidian` CLI](https://obsidian.md/cli)
+via `PATH`. When found, it routes through Tier A (native); otherwise it uses the
+portable schema scaffold (Tier B).
+
+To disable native mode explicitly:
 
 ```bash
-touch "$VAULT/.obsidian-cli-enabled"     # or: export VAULT_OBSIDIAN_CLI=1
+export VAULT_OBSIDIAN_CLI=0
 ```
 
-`vkit note` then routes through the official `obsidian` CLI (Tier A); otherwise
-it uses the portable schema scaffold (Tier B). The marker is gitignored.
+`vkit doctor` reports the current detection state (binary found / CLI active / disabled).
 
 ## Layout
 
@@ -102,11 +123,15 @@ vkit/
 
 ## Develop
 
+Common tasks via [Taskfile](https://taskfile.dev):
+
 ```bash
-go vet ./... && go build -o /tmp/vkit .
-go test ./...
-GOOS=darwin GOARCH=arm64 go build -o /dev/null .   # cross-compile check
-GOOS=windows GOARCH=amd64 go build -o /dev/null .
+task build          # go build -o /tmp/vkit .
+task install        # build + install to ~/.local/bin
+task test           # go test ./...
+task lint           # go vet ./... && gofmt -l .
+task release-check  # goreleaser check + snapshot
+task doctor         # install then vkit doctor --vault ~/vault
 ```
 
 Enable the pre-commit hook once per clone (runs `gofmt`/`go vet`/`go test`):
@@ -114,9 +139,6 @@ Enable the pre-commit hook once per clone (runs `gofmt`/`go vet`/`go test`):
 ```bash
 git config core.hooksPath .githooks
 ```
-
-> Module path is `vkit` (relocatable). Not in scope yet: `go install`
-> publishing, Homebrew tap.
 
 ## CI / Release
 

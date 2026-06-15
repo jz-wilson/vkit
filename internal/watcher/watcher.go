@@ -13,8 +13,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"vkit/internal/moc"
-	"vkit/internal/vaultpath"
+	"github.com/jz-wilson/vkit/internal/moc"
+	"github.com/jz-wilson/vkit/internal/vaultpath"
 
 	"github.com/fsnotify/fsnotify"
 )

@@ -7,8 +7,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"vkit/internal/validate"
-	"vkit/internal/vaultpath"
+	"github.com/jz-wilson/vkit/internal/validate"
+	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
 
 var valStaged bool

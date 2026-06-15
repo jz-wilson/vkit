@@ -5,9 +5,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"vkit/internal/moc"
-	"vkit/internal/rename"
-	"vkit/internal/vaultpath"
+	"github.com/jz-wilson/vkit/internal/moc"
+	"github.com/jz-wilson/vkit/internal/rename"
+	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
 
 var renameCmd = &cobra.Command{

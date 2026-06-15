@@ -1,0 +1,54 @@
+version: '3'
+
+vars:
+  BINARY: /tmp/vkit
+  INSTALL_DIR: ~/.local/bin
+  VAULT: ~/vault
+
+tasks:
+  build:
+    desc: Build vkit binary to /tmp/vkit
+    cmds:
+      - go build -o {{.BINARY}} .
+
+  install:
+    desc: Build and install vkit to ~/.local/bin
+    deps: [build]
+    cmds:
+      - install -m755 {{.BINARY}} {{.INSTALL_DIR}}/vkit
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test ./...
+
+  lint:
+    desc: Run go vet and check formatting
+    cmds:
+      - go vet ./...
+      - gofmt -l .
+
+  fmt:
+    desc: Format all Go source files
+    cmds:
+      - gofmt -w .
+
+  release-check:
+    desc: Validate goreleaser config and run a local snapshot release
+    cmds:
+      - goreleaser check
+      - goreleaser release --snapshot --clean
+
+  doctor:
+    desc: Install vkit then run vkit doctor against VAULT
+    deps: [install]
+    cmds:
+      - vkit doctor --vault {{.VAULT}}
+
+  completion-zsh:
+    desc: Install zsh completion to ~/.zfunc/_vkit
+    deps: [install]
+    cmds:
+      - mkdir -p ~/.zfunc
+      - vkit completion zsh > ~/.zfunc/_vkit
+      - echo "Add 'fpath=(~/.zfunc \$fpath)' and 'autoload -Uz compinit && compinit' to ~/.zshrc"

@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"vkit/internal/watcher"
+	"github.com/jz-wilson/vkit/internal/watcher"
 )
 
 var (

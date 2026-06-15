@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"vkit/internal/vaultpath"
+	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
 
 // LinkRewriter rewrites Obsidian wiki-links in note content when a note is

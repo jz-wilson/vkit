@@ -8,10 +8,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"vkit/internal/moc"
-	"vkit/internal/osdetect"
-	"vkit/internal/scaffold"
-	"vkit/internal/vaultpath"
+	"github.com/jz-wilson/vkit/internal/moc"
+	"github.com/jz-wilson/vkit/internal/osdetect"
+	"github.com/jz-wilson/vkit/internal/scaffold"
+	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
 
 var initCmd = &cobra.Command{

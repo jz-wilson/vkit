@@ -1,4 +1,4 @@
-module vkit
+module github.com/jz-wilson/vkit
 
 go 1.22
 

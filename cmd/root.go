@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"vkit/internal/vaultpath"
+	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
 
 var vaultFlag string

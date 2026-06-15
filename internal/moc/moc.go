@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"vkit/internal/vaultpath"
+	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
 
 // Build regenerates MOC.md in the vault and returns the note count.

@@ -6,9 +6,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"vkit/internal/moc"
-	"vkit/internal/note"
-	"vkit/internal/vaultpath"
+	"github.com/jz-wilson/vkit/internal/moc"
+	"github.com/jz-wilson/vkit/internal/note"
+	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
 
 var (

@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"vkit/internal/vaultpath"
+	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
 
 // Problem is one validation failure.

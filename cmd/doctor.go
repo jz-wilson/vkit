@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"vkit/internal/osdetect"
-	"vkit/internal/vaultpath"
+	"github.com/jz-wilson/vkit/internal/osdetect"
+	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
 
 func obsidianCLIStatus(info osdetect.Info) string {
