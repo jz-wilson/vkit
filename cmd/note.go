@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/jz-wilson/vkit/cmd/ui"
 	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/note"
 	"github.com/jz-wilson/vkit/internal/vaultpath"
@@ -41,7 +42,7 @@ var noteCmd = &cobra.Command{
 		if _, err := moc.Build(vault, today); err != nil {
 			return err
 		}
-		fmt.Printf("Created %s\n", relPath)
+		fmt.Println(ui.Line("📝", ui.OK("Created "+ui.Dim(relPath))))
 		return nil
 	},
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/jz-wilson/vkit/cmd/ui"
 	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/rename"
 	"github.com/jz-wilson/vkit/internal/vaultpath"
@@ -26,9 +27,10 @@ var renameCmd = &cobra.Command{
 		if _, err := moc.Build(vault, vaultpath.Today()); err != nil {
 			return err
 		}
-		fmt.Printf("Renamed %s -> %s. Touched %d file(s):\n", args[0], args[1], len(touched))
+		fmt.Println(ui.Line("✏️", ui.OK(fmt.Sprintf("Renamed %s → %s", ui.Dim(args[0]), ui.Dim(args[1])))))
+		fmt.Println(ui.Dim(fmt.Sprintf("  Touched %d file(s):", len(touched))))
 		for _, f := range touched {
-			fmt.Printf("  %s\n", f)
+			fmt.Printf("    %s\n", ui.Dim(f))
 		}
 		return nil
 	},

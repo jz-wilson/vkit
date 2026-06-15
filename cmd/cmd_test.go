@@ -296,7 +296,7 @@ func TestValidateExitsNonZeroOnFailure(t *testing.T) {
 	if ee.ExitCode() != 1 {
 		t.Errorf("exit code = %d, want 1", ee.ExitCode())
 	}
-	if !strings.Contains(stderr.String(), "validation failed") {
+	if !strings.Contains(stderr.String(), "Validation failed") {
 		t.Errorf("stderr missing failure message: %q", stderr.String())
 	}
 }
@@ -417,7 +417,7 @@ func TestDoctorOutput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("doctor error: %v", err)
 	}
-	for _, key := range []string{"os:", "pkgmgr:", "systemd-user:", "tty:", "obsidian-cli:", "vault:"} {
+	for _, key := range []string{"System", "Obsidian", "OS", "Pkg mgr", "systemd", "TTY", "Binary", "CLI mode", "Vault"} {
 		if !strings.Contains(out, key) {
 			t.Errorf("doctor output missing %q:\n%s", key, out)
 		}

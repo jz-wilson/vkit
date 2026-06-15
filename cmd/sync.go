@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/jz-wilson/vkit/cmd/ui"
 	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
@@ -25,7 +26,7 @@ var syncCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Rebuilt MOC.md (%d notes)\n", n)
+		fmt.Println(ui.Line("🔄", ui.OK(fmt.Sprintf("Rebuilt MOC.md (%d notes)", n))))
 
 		// Show status first.
 		_ = git(vault, "status", "--short")
@@ -48,10 +49,10 @@ var syncCmd = &cobra.Command{
 			msg = "vault: sync"
 		}
 		if err := gitCommit(vault, msg, false); err != nil {
-			fmt.Fprintln(os.Stderr, "nothing committed (no staged changes?)")
+			fmt.Fprintln(os.Stderr, ui.Fail("nothing committed (no staged changes?)"))
 			return nil
 		}
-		fmt.Printf("Committed: %s\n", msg)
+		fmt.Println(ui.OK(fmt.Sprintf("Committed: %s", ui.Dim(msg))))
 		return nil
 	},
 }

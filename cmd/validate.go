@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/jz-wilson/vkit/cmd/ui"
 	"github.com/jz-wilson/vkit/internal/validate"
 	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
@@ -55,10 +56,11 @@ var validateCmd = &cobra.Command{
 			return err
 		}
 		if len(probs) > 0 {
+			fmt.Fprintln(os.Stderr, ui.Line("🔍", ui.Fail("Validation failed")))
 			for _, p := range probs {
-				fmt.Fprintf(os.Stderr, "  %s: %s\n", p.File, p.Msg)
+				fmt.Fprintf(os.Stderr, "    %s: %s\n", ui.Dim(p.File), p.Msg)
 			}
-			fmt.Fprintln(os.Stderr, "validation failed. Fix the above, then re-commit.")
+			fmt.Fprintln(os.Stderr, ui.Dim("  Fix the above, then re-commit."))
 			os.Exit(1)
 		}
 		return nil

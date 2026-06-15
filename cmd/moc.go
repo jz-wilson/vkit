@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/jz-wilson/vkit/cmd/ui"
 	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
@@ -22,7 +23,7 @@ var mocCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Wrote MOC.md (%d notes)\n", n)
+		fmt.Println(ui.Line("🗂️", ui.OK(fmt.Sprintf("Wrote MOC.md (%d notes)", n))))
 		return nil
 	},
 }

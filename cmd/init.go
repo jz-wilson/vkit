@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/jz-wilson/vkit/cmd/ui"
 	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/osdetect"
 	"github.com/jz-wilson/vkit/internal/scaffold"
@@ -57,24 +58,25 @@ var initCmd = &cobra.Command{
 		_ = gitCommit(vault, "vault: initial scaffold", true)
 
 		info := osdetect.Detect(vault)
-		fmt.Printf("Done.\n\n")
-		fmt.Printf("  OS:       %s\n", info.OS)
-		fmt.Printf("  Vault:    %s\n", vault)
-		fmt.Printf("  Index:    MOC.md (%d notes)\n", n)
-		fmt.Printf("  Obsidian: %s\n", obsidianStatus(info))
-		fmt.Printf("\nKeep the index fresh with `vkit watch --vault %s` (or install a\nservice from %s).\n", vault, filepath.Join(vault, "services"))
+		fmt.Println(ui.Line("🚀", ui.StyleLabel.Render("Vault initialized")))
+		fmt.Println()
+		fmt.Println(ui.Row("OS", info.OS))
+		fmt.Println(ui.Row("Vault", ui.Dim(vault)))
+		fmt.Println(ui.Row("Index", fmt.Sprintf("MOC.md (%d notes)", n)))
+		fmt.Println(ui.Row("Obsidian", obsidianStatus(info)))
+		fmt.Printf("\n%s\n", ui.Dim(fmt.Sprintf("Keep the index fresh with `vkit watch --vault %s`\n(or install a service from %s)", vault, filepath.Join(vault, "services"))))
 		return nil
 	},
 }
 
 func obsidianStatus(info osdetect.Info) string {
 	if info.ObsidianCLI {
-		return "native mode ENABLED (obsidian binary found)"
+		return ui.StyleSuccess.Render("native mode enabled")
 	}
 	if info.ObsidianBinary {
-		return "native mode disabled (set VAULT_OBSIDIAN_CLI=0 removed to re-enable)"
+		return ui.StyleDim.Render("native mode disabled (unset VAULT_OBSIDIAN_CLI=0 to enable)")
 	}
-	return "portable core (obsidian binary not found — install from https://obsidian.md/cli)"
+	return ui.StyleDim.Render("portable mode (obsidian binary not found)")
 }
 
 func git(vault string, args ...string) error {
