@@ -24,14 +24,11 @@ type Problem struct {
 var absPathRe = regexp.MustCompile(`(/Users/|/mnt/|file://|[A-Z]:\\)`)
 
 // ShouldSkip reports whether a path (relative, slash-separated) is exempt from
-// validation. It defers to the shared note classifier and adds validate's own
-// README.md exemption (docs, not a note).
+// validation. It delegates to vaultpath.ClassifyFile with SkipREADME=true so
+// README.md files (docs, not notes) are also excluded.
 func ShouldSkip(rel string) bool {
 	rel = filepath.ToSlash(rel)
-	if !vaultpath.IsNote(rel) {
-		return true
-	}
-	return filepath.Base(rel) == "README.md"
+	return !vaultpath.ClassifyFile(rel, vaultpath.ClassifyOpts{SkipREADME: true})
 }
 
 // Files validates the given relative paths against the vault root and returns

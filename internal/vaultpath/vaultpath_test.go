@@ -170,6 +170,32 @@ func TestIsNote(t *testing.T) {
 	}
 }
 
+func TestClassifyFile(t *testing.T) {
+	t.Run("normal note passes", func(t *testing.T) {
+		if !ClassifyFile("projects/a.md", ClassifyOpts{}) {
+			t.Error("expected true for a regular note")
+		}
+	})
+	t.Run("README.md blocked when SkipREADME=true", func(t *testing.T) {
+		if ClassifyFile("README.md", ClassifyOpts{SkipREADME: true}) {
+			t.Error("expected false for README.md with SkipREADME=true")
+		}
+		if ClassifyFile("subdir/README.md", ClassifyOpts{SkipREADME: true}) {
+			t.Error("expected false for subdir/README.md with SkipREADME=true")
+		}
+	})
+	t.Run("README.md passes when SkipREADME=false", func(t *testing.T) {
+		if !ClassifyFile("README.md", ClassifyOpts{SkipREADME: false}) {
+			t.Error("expected true for README.md with SkipREADME=false")
+		}
+	})
+	t.Run("non-md file blocked", func(t *testing.T) {
+		if ClassifyFile("notes/file.txt", ClassifyOpts{}) {
+			t.Error("expected false for non-markdown file")
+		}
+	})
+}
+
 // TestWalkNotes: WalkNotes visits exactly the note-eligible files, skipping
 // excluded dirs, dotdirs, dotfiles, non-markdown, and meta files.
 func TestWalkNotes(t *testing.T) {
