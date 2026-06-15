@@ -13,6 +13,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/charmbracelet/huh"
 )
 
 //go:embed all:templates
@@ -91,18 +93,20 @@ func (f FixedDecider) Choose(_ Eval) (string, error) {
 	}
 }
 
-// InteractiveDecider drives the readline prompt loop on a real TTY.
+// InteractiveDecider drives the huh arrow-key menu on a real TTY, falling
+// back to accessible (plain-text numbered) mode when Accessible is true.
 // R and W are the terminal reader/writer; HasTTY gates prompting.
-// Vault is passed through to printDiffs so [d]iff output is correct.
+// Vault is passed through to printDiffs so diff output is correct.
 // buf is initialised lazily so that a single bufio.Reader is shared
 // between Choose (which reads the menu selection) and any subsequent
 // call that needs to keep reading from the same stream (e.g. customize).
 type InteractiveDecider struct {
-	R      io.Reader
-	W      io.Writer
-	HasTTY bool
-	Vault  string
-	buf    *bufio.Reader // lazily initialised; shared across Choose + customize
+	R          io.Reader
+	W          io.Writer
+	HasTTY     bool
+	Accessible bool // force plain-text numbered menu (tests / non-TTY pipes)
+	Vault      string
+	buf        *bufio.Reader // lazily initialised; shared across Choose + customize
 }
 
 func (d *InteractiveDecider) reader() *bufio.Reader {
@@ -113,7 +117,28 @@ func (d *InteractiveDecider) reader() *bufio.Reader {
 }
 
 func (d *InteractiveDecider) Choose(e Eval) (string, error) {
-	return decideAction(e, d.Vault, d.reader(), d.W, d.HasTTY), nil
+	r := io.Reader(d.R)
+	if d.Accessible {
+		// huh's RunAccessible uses bufio.Scanner which reads greedily. Wrap the
+		// shared bufio.Reader in a lineByLineReader so each Read delivers exactly
+		// one newline-terminated line — leaving the rest available to customize.
+		r = &lineByLineReader{r: d.reader()}
+	}
+	return decideAction(e, d.Vault, r, d.W, d.HasTTY, d.Accessible), nil
+}
+
+// lineByLineReader wraps a bufio.Reader and delivers one newline-terminated
+// line per Read call. This prevents bufio.Scanner (used inside huh's
+// RunAccessible) from consuming multiple lines in a single Read, which would
+// starve subsequent reads on the same shared reader (e.g. customize prompts).
+type lineByLineReader struct {
+	r *bufio.Reader
+}
+
+func (l *lineByLineReader) Read(p []byte) (int, error) {
+	b, err := l.r.ReadString('\n')
+	n := copy(p, b)
+	return n, err
 }
 
 // templateBytes reads an embedded template by its vault-relative path.
@@ -276,35 +301,41 @@ func Update(vault string, mode Mode, dryRun bool, decider Decider, out io.Writer
 	return res, nil
 }
 
-func decideAction(e Eval, vault string, r *bufio.Reader, out io.Writer, hasTTY bool) string {
+func decideAction(e Eval, vault string, r io.Reader, out io.Writer, hasTTY bool, accessible bool) string {
 	if !hasTTY {
 		fmt.Fprintln(out, "==> non-interactive, no flag — changing nothing. Re-run with --force (all) or --keep (tooling + new templates only).")
 		return "quit"
 	}
-	return promptMenu(e, vault, r, out)
+	return promptMenu(e, vault, r, out, accessible)
 }
 
-func promptMenu(e Eval, vault string, r *bufio.Reader, out io.Writer) string {
+func promptMenu(e Eval, vault string, r io.Reader, out io.Writer, accessible bool) string {
 	for {
-		fmt.Fprint(out, "Apply? [a]ll / [s]afe (skip your changed templates) / [c]ustomize / [d]iff / [q]uit  (default: quit): ")
-		line, err := r.ReadString('\n')
-		if err != nil && line == "" {
+		var choice string
+		sel := huh.NewSelect[string]().
+			Title("Apply scaffold updates?").
+			Options(
+				huh.NewOption("All — overwrite everything", "apply"),
+				huh.NewOption("Safe — skip your changed templates", "safe"),
+				huh.NewOption("Customize — file by file", "customize"),
+				huh.NewOption("Diff — show what changed", "diff"),
+				huh.NewOption("Quit — make no changes", "quit"),
+			).
+			Value(&choice)
+		var err error
+		if accessible {
+			err = sel.RunAccessible(out, r)
+		} else {
+			err = sel.Run()
+		}
+		if err != nil {
 			return "quit"
 		}
-		switch strings.ToLower(strings.TrimSpace(line)) {
-		case "a":
-			return "apply"
-		case "s":
-			return "safe"
-		case "c":
-			return "customize"
-		case "", "q":
-			return "quit"
-		case "d":
+		if choice == "diff" {
 			printDiffs(e, vault, out)
-		default:
-			fmt.Fprintln(out, "  pick a, s, c, d, or q.")
+			continue
 		}
+		return choice
 	}
 }
 

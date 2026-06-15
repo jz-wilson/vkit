@@ -178,8 +178,8 @@ func TestSplitLines(t *testing.T) {
 func TestPromptDiffBranch(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer
-	// "d" prints diffs, then "q" quits with no changes.
-	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader("d\nq\n"), W: &out, HasTTY: true}, &out)
+	// "4" selects Diff, "5" selects Quit (accessible numbered menu).
+	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader("4\n5\n"), W: &out, HasTTY: true, Accessible: true}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -196,17 +196,19 @@ func TestPromptDiffBranch(t *testing.T) {
 	}
 	// quitting changes nothing.
 	if read(t, filepath.Join(v, "CLAUDE.md")) != "# my custom claude\n" {
-		t.Error("CLAUDE.md modified after [d]iff + [q]uit")
+		t.Error("CLAUDE.md modified after diff + quit")
 	}
 }
 
-// TestCustomizeAppliesAll verifies that "c\ny\ny\ny\n" applies tooling, new
-// template, and overwrite in sequence via a single shared bufio.Reader — the
-// former double-reader bug that caused the "y" answers to be swallowed is fixed.
+// TestCustomizeAppliesAll verifies that "3\ny\ny\ny\n" selects Customize then
+// applies tooling, new template, and overwrite in sequence via a single shared
+// bufio.Reader — the former double-reader bug that caused the "y" answers to be
+// swallowed is fixed.
 func TestCustomizeAppliesAll(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer
-	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader("c\ny\ny\ny\n"), W: &out, HasTTY: true}, &out)
+	// "3" selects Customize in accessible numbered menu; "y" answers are for customize.
+	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader("3\ny\ny\ny\n"), W: &out, HasTTY: true, Accessible: true}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +243,7 @@ func TestCustomizeAppliesAll(t *testing.T) {
 func TestCustomizeDeclineKeeps(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer
-	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader("c\nn\nn\nn\n"), W: &out, HasTTY: true}, &out)
+	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader("3\nn\nn\nn\n"), W: &out, HasTTY: true, Accessible: true}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -256,28 +258,29 @@ func TestCustomizeDeclineKeeps(t *testing.T) {
 	}
 }
 
-// TestPromptInvalidThenQuit characterizes the default branch of the menu: an
-// unrecognized choice reprints the hint and loops until a valid choice.
+// TestPromptInvalidThenQuit verifies that a non-numeric entry is rejected and
+// the menu re-prompts; entering "5" (Quit) then produces Action=quit.
 func TestPromptInvalidThenQuit(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer
-	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader("z\nq\n"), W: &out, HasTTY: true}, &out)
+	// "z" is not a valid number — huh reprints range error; "5" selects Quit.
+	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader("z\n5\n"), W: &out, HasTTY: true, Accessible: true}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if res.Action != "quit" {
 		t.Fatalf("res=%+v", res)
 	}
-	if !strings.Contains(out.String(), "pick a, s, c, d, or q.") {
+	if !strings.Contains(out.String(), "Invalid") {
 		t.Errorf("missing invalid-choice hint:\n%s", out.String())
 	}
 }
 
-// TestPromptEOFQuits characterizes that an empty/EOF reader defaults to quit.
+// TestPromptEOFQuits characterizes that a non-interactive (HasTTY: false) update defaults to quit.
 func TestPromptEOFQuits(t *testing.T) {
 	v := dirtyVault(t)
 	var out bytes.Buffer
-	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader(""), W: &out, HasTTY: true}, &out)
+	res, err := Update(v, ModePrompt, false, &InteractiveDecider{Vault: v, R: strings.NewReader(""), W: &out, HasTTY: false}, &out)
 	if err != nil {
 		t.Fatal(err)
 	}
