@@ -52,3 +52,9 @@ tasks:
       - mkdir -p ~/.zfunc
       - vkit completion zsh > ~/.zfunc/_vkit
       - echo "Add 'fpath=(~/.zfunc \$fpath)' and 'autoload -Uz compinit && compinit' to ~/.zshrc"
+
+  hooks:
+    desc: Enable this repo's git hooks (gofmt, go mod tidy, vet, test)
+    cmds:
+      - git config core.hooksPath .githooks
+      - echo "git hooks enabled (core.hooksPath=.githooks)"

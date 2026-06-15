@@ -1,20 +1,37 @@
 #!/usr/bin/env bash
-# vkit pre-commit hook: gofmt + go vet + go test.
-# Enable once per clone:  git config core.hooksPath .githooks
+# vkit pre-commit hook: gofmt + go mod tidy + go vet + go test.
+# Enable once per clone:  git config core.hooksPath .githooks   (or: task hooks)
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
+# Git runs hooks in a non-interactive shell, so PATH may lack the Go toolchain
+# even when an interactive shell has it. Add the usual locations.
+export PATH="$PATH:/usr/local/go/bin:${HOME}/go/bin"
+
+if ! command -v go >/dev/null 2>&1; then
+	echo "pre-commit: 'go' not found on PATH; install Go or commit from a shell that has it" >&2
+	exit 1
+fi
+
 # gofmt: fail if any staged *.go file is not formatted.
-staged_go=$(git diff --cached --name-only --diff-filter=ACM -- '*.go')
-if [ -n "$staged_go" ]; then
-	unformatted=$(gofmt -l $staged_go)
-	if [ -n "$unformatted" ]; then
+staged_go=$(git diff --cached --name-only --diff-filter=ACM -- '*.go' || true)
+if [ -n "${staged_go}" ]; then
+	unformatted=$(gofmt -l ${staged_go})
+	if [ -n "${unformatted}" ]; then
 		echo "pre-commit: gofmt needed on:" >&2
-		echo "$unformatted" >&2
-		echo "run: gofmt -w $unformatted" >&2
+		echo "${unformatted}" >&2
+		echo "run: gofmt -w ${unformatted}" >&2
 		exit 1
 	fi
+fi
+
+# go.mod / go.sum must be tidy. -diff (Go 1.23+) reports drift without writing.
+# This is what would have caught the missing huh dependency before CI did.
+echo "pre-commit: go mod tidy -diff"
+if ! go mod tidy -diff; then
+	echo "pre-commit: go.mod/go.sum not tidy -- run: go mod tidy" >&2
+	exit 1
 fi
 
 echo "pre-commit: go vet ./..."
