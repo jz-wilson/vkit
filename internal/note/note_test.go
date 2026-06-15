@@ -1,6 +1,7 @@
 package note
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -168,19 +169,78 @@ func TestRender(t *testing.T) {
 	}
 }
 
-// TestCreateNativeTitleRouting characterizes the only part of the Tier A native
-// path that is unit-testable without an installed `obsidian` binary: the
-// empty-title -> titleFromFilename derivation that precedes the exec calls.
-//
-// LIMITATION: CreateNative invokes the `obsidian` CLI through the unexported
-// runObsidian, which calls exec.Command("obsidian", ...) directly. There is no
-// injectable exec/lookPath hook (unlike osdetect's detectPkgMgr), so the actual
-// exec routing, argument construction, and property:set sequencing cannot be
-// tested here without either an installed obsidian binary or a refactor to make
-// the exec injectable. Only the shared title-derivation decision is covered.
-func TestCreateNativeTitleRouting(t *testing.T) {
-	// Same derivation rule the native path applies before shelling out.
-	if got := titleFromFilename("projects/native-note.md"); got != "Native Note" {
-		t.Errorf("native title derivation = %q want %q", got, "Native Note")
+// TestCreateNativeCallSequence verifies that createNative issues exec calls in
+// order: create → property:set updated → property:set tags (when tags present).
+func TestCreateNativeCallSequence(t *testing.T) {
+	type call struct {
+		vault string
+		args  []string
+	}
+	var calls []call
+	fake := func(vault string, args ...string) error {
+		calls = append(calls, call{vault, args})
+		return nil
+	}
+	if err := createNative("/vault", "projects/note.md", "My Note", []string{"go", "tdd"}, "2026-06-15", fake); err != nil {
+		t.Fatal(err)
+	}
+	if len(calls) != 3 {
+		t.Fatalf("expected 3 exec calls, got %d", len(calls))
+	}
+	if calls[0].args[0] != "create" {
+		t.Errorf("first call = %q, want create", calls[0].args[0])
+	}
+	if calls[1].args[0] != "property:set" || calls[1].args[1] != "name=updated" {
+		t.Errorf("second call = %v, want property:set updated", calls[1].args)
+	}
+	if calls[2].args[0] != "property:set" || calls[2].args[1] != "name=tags" {
+		t.Errorf("third call = %v, want property:set tags", calls[2].args)
+	}
+}
+
+// TestCreateNativeNoTagsSkipsTagCall: nil tags → only 2 exec calls.
+func TestCreateNativeNoTagsSkipsTagCall(t *testing.T) {
+	var count int
+	fake := func(_ string, _ ...string) error { count++; return nil }
+	if err := createNative("/vault", "note.md", "Title", nil, "2026-06-15", fake); err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Errorf("expected 2 exec calls, got %d", count)
+	}
+}
+
+// TestCreateNativeEnsuresMD: bare stem → exec args contain path with .md.
+func TestCreateNativeEnsuresMD(t *testing.T) {
+	var firstArgs []string
+	fake := func(_ string, args ...string) error {
+		if firstArgs == nil {
+			firstArgs = args
+		}
+		return nil
+	}
+	if err := createNative("/vault", "projects/alpha", "Alpha", nil, "2026-06-15", fake); err != nil {
+		t.Fatal(err)
+	}
+	for _, a := range firstArgs {
+		if strings.HasPrefix(a, "path=") && !strings.HasSuffix(a, ".md") {
+			t.Errorf("exec arg %q lacks .md extension", a)
+		}
+	}
+}
+
+// TestCreateNativeExecFailure: first exec error → returned immediately, no
+// subsequent calls.
+func TestCreateNativeExecFailure(t *testing.T) {
+	var count int
+	fake := func(_ string, _ ...string) error {
+		count++
+		return errors.New("obsidian not found")
+	}
+	if err := createNative("/vault", "note.md", "Title", nil, "2026-06-15", fake); err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if count != 1 {
+		t.Errorf("expected 1 exec call before error, got %d", count)
 	}
 }

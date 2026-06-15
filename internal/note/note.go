@@ -68,26 +68,34 @@ func titleFromFilename(relPath string) string {
 	return strings.Join(parts, " ")
 }
 
-// CreateNative drives the official obsidian CLI (Tier A). It is only called when
-// native mode is opted into.
-func CreateNative(vault, relPath, title string, tags []string, today string) error {
+type execFunc func(vault string, args ...string) error
+
+// createNative is the testable core of CreateNative — accepts an exec hook so
+// tests can inject a fake without spawning a real obsidian process.
+func createNative(vault, relPath, title string, tags []string, today string, exec execFunc) error {
 	relPath = ensureMD(relPath)
 	if title == "" {
 		title = titleFromFilename(relPath)
 	}
 	content := fmt.Sprintf("# %s\n\n%s", title, bodySkeleton)
-	if err := runObsidian(vault, "create", "path="+relPath, "content="+content); err != nil {
+	if err := exec(vault, "create", "path="+relPath, "content="+content); err != nil {
 		return err
 	}
-	if err := runObsidian(vault, "property:set", "name=updated", "value="+today, "path="+relPath); err != nil {
+	if err := exec(vault, "property:set", "name=updated", "value="+today, "path="+relPath); err != nil {
 		return err
 	}
 	if len(tags) > 0 {
-		if err := runObsidian(vault, "property:set", "name=tags", "type=list", "value="+strings.Join(tags, ","), "path="+relPath); err != nil {
+		if err := exec(vault, "property:set", "name=tags", "type=list", "value="+strings.Join(tags, ","), "path="+relPath); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// CreateNative drives the official obsidian CLI (Tier A). It is only called when
+// native mode is opted into.
+func CreateNative(vault, relPath, title string, tags []string, today string) error {
+	return createNative(vault, relPath, title, tags, today, runObsidian)
 }
 
 func runObsidian(vault string, args ...string) error {
