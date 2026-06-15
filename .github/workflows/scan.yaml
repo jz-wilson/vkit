@@ -12,7 +12,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Semgrep SAST
         run: |
-          pip3 install --break-system-packages semgrep==1.90.0
+          sudo apt-get install -y --no-install-recommends python3-pip
+          pip3 install semgrep==1.90.0
           semgrep scan --config auto --error --sarif --output semgrep.sarif || true
   trivy:
     runs-on: arc-runner-vkit
@@ -21,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Trivy (vuln + secrets + IaC)
         run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
           trivy fs --scanners vuln,secret,misconfig --exit-code 0 --format table .
   sonar:
     runs-on: arc-runner-vkit
@@ -39,7 +40,8 @@ jobs:
         run: go test -coverprofile=coverage.out ./...
       - name: SonarScanner
         run: |
-          sudo apt-get install -y --no-install-recommends default-jre-headless
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends openjdk-17-jre-headless unzip
           curl -sSLo sonar-scanner.zip \
             https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-6.2.1.4610.zip
           unzip -q sonar-scanner.zip
