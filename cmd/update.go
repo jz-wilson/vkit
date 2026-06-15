@@ -37,7 +37,7 @@ var updateCmd = &cobra.Command{
 		}
 
 		// have_tty(): a real /dev/tty must be openable for the prompt to run.
-		hasTTY := osdetect.HasTTY()
+		hasTTY := osdetect.Detect("").HasTTY
 		in, closeIn := promptInput(hasTTY)
 		defer closeIn()
 
