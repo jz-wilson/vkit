@@ -25,7 +25,7 @@ var noteCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		relPath := args[0]
+		relPath := note.EnsureMD(args[0])
 		var tags []string
 		for _, t := range strings.Split(noteTags, ",") {
 			if t = strings.TrimSpace(t); t != "" {

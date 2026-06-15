@@ -13,12 +13,15 @@ import (
 
 // ensureMD appends ".md" to relPath when it has no .md extension, so callers
 // can pass bare stems ("projects/alpha") or full names ("projects/alpha.md").
-func ensureMD(relPath string) string {
+// EnsureMD appends ".md" to relPath when it has no .md extension.
+func EnsureMD(relPath string) string {
 	if strings.HasSuffix(relPath, ".md") {
 		return relPath
 	}
 	return relPath + ".md"
 }
+
+func ensureMD(relPath string) string { return EnsureMD(relPath) }
 
 // Create scaffolds a note at relPath (relative to vault). It refuses to
 // overwrite an existing file. title, if empty, is derived from the filename
