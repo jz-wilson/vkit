@@ -460,6 +460,33 @@ func TestSyncRebuildsAndCommits(t *testing.T) {
 	}
 }
 
+// TestSyncSkipsMissingDir: sync must still commit when one of the named note
+// dirs is absent — it should skip the missing dir rather than letting git abort
+// the whole add (the pre-fix behaviour was a silent no-op exit 0).
+func TestSyncSkipsMissingDir(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not on PATH")
+	}
+	v := vault(t)
+	mustGit(t, v, "init", "-q")
+	mustGit(t, v, "config", "user.name", "test")
+	mustGit(t, v, "config", "user.email", "test@local")
+	// Only create 2 of the 4 dirs; "infrastructure" and "reference" are absent.
+	for _, d := range []string{"decisions", "projects"} {
+		writeNote(t, v, d+"/.keep", "")
+	}
+	writeNote(t, v, "projects/p.md", "---\nupdated: 2026-06-14\n---\n\n# P\n")
+
+	out, err := runRootCapture(t, "sync", "-m", "partial dirs sync")
+	if err != nil {
+		t.Fatalf("sync error: %v (out=%q)", err, out)
+	}
+	log := gitOut(t, v, "log", "--oneline")
+	if !strings.Contains(log, "partial dirs sync") {
+		t.Errorf("expected commit despite missing dirs, git log:\n%s", log)
+	}
+}
+
 func mustGit(t *testing.T, dir string, args ...string) {
 	t.Helper()
 	cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)

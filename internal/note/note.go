@@ -11,10 +11,20 @@ import (
 	"strings"
 )
 
+// ensureMD appends ".md" to relPath when it has no .md extension, so callers
+// can pass bare stems ("projects/alpha") or full names ("projects/alpha.md").
+func ensureMD(relPath string) string {
+	if strings.HasSuffix(relPath, ".md") {
+		return relPath
+	}
+	return relPath + ".md"
+}
+
 // Create scaffolds a note at relPath (relative to vault). It refuses to
 // overwrite an existing file. title, if empty, is derived from the filename
 // (kebab -> Title Case). tags may be nil.
 func Create(vault, relPath, title string, tags []string, today string) error {
+	relPath = ensureMD(relPath)
 	if title == "" {
 		title = titleFromFilename(relPath)
 	}
@@ -61,6 +71,7 @@ func titleFromFilename(relPath string) string {
 // CreateNative drives the official obsidian CLI (Tier A). It is only called when
 // native mode is opted into.
 func CreateNative(vault, relPath, title string, tags []string, today string) error {
+	relPath = ensureMD(relPath)
 	if title == "" {
 		title = titleFromFilename(relPath)
 	}

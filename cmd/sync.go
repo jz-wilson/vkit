@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -29,10 +30,17 @@ var syncCmd = &cobra.Command{
 		// Show status first.
 		_ = git(vault, "status", "--short")
 
-		// Stage ONLY documentation assets — never `git add -A`. Pathspecs cover
-		// every markdown file plus the note dirs; non-doc files are left alone.
-		addArgs := []string{"add", "--", "*.md", "MOC.md",
-			"decisions", "infrastructure", "projects", "reference"}
+		// Stage ONLY documentation assets — never `git add -A`. Always stage the
+		// *.md glob and MOC.md; only include named dirs that exist so a missing dir
+		// can't abort the whole git add (git treats a missing literal pathspec as fatal).
+		// This set mirrors scaffold.contentDirs minus "archive" (archived notes are
+		// not staged by sync — they are committed explicitly when archived).
+		addArgs := []string{"add", "--", "*.md", "MOC.md"}
+		for _, d := range []string{"decisions", "infrastructure", "projects", "reference"} {
+			if fi, err := os.Stat(filepath.Join(vault, d)); err == nil && fi.IsDir() {
+				addArgs = append(addArgs, d)
+			}
+		}
 		_ = git(vault, addArgs...)
 
 		msg := syncMsg

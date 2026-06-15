@@ -84,6 +84,44 @@ func TestCreateRefusesOverwrite(t *testing.T) {
 	}
 }
 
+// TestCreateAppendsExtension: passing a bare stem ("projects/alpha") creates
+// "projects/alpha.md" — the .md suffix is appended automatically.
+func TestCreateAppendsExtension(t *testing.T) {
+	v := t.TempDir()
+	if err := Create(v, "projects/alpha", "Alpha", nil, "2026-06-14"); err != nil {
+		t.Fatal(err)
+	}
+	mdPath := filepath.Join(v, "projects", "alpha.md")
+	if _, err := os.Stat(mdPath); err != nil {
+		t.Fatalf("expected %s to exist, got: %v", mdPath, err)
+	}
+	// bare stem must NOT exist alongside the .md
+	if _, err := os.Stat(filepath.Join(v, "projects", "alpha")); err == nil {
+		t.Error("extensionless file created alongside .md — should only create .md")
+	}
+	got := read(t, mdPath)
+	if !strings.Contains(got, "# Alpha\n") {
+		t.Errorf("title not in scaffold:\n%q", got)
+	}
+}
+
+// TestCreateAppendsExtensionOverwriteGuard: stem + .md forms resolve to the same
+// file; a second call with the stem is refused correctly.
+func TestCreateAppendsExtensionOverwriteGuard(t *testing.T) {
+	v := t.TempDir()
+	if err := Create(v, "notes/foo.md", "Foo", nil, "2026-06-14"); err != nil {
+		t.Fatal(err)
+	}
+	// passing the bare stem should hit the overwrite guard on the .md file
+	err := Create(v, "notes/foo", "Foo Again", nil, "2026-06-14")
+	if err == nil {
+		t.Fatal("expected overwrite refusal for stem when .md exists, got nil")
+	}
+	if !strings.Contains(err.Error(), "already exists") {
+		t.Errorf("error = %q, want 'already exists'", err)
+	}
+}
+
 // TestCreateMakesParentDirs: Create creates missing parent directories.
 func TestCreateMakesParentDirs(t *testing.T) {
 	v := t.TempDir()
