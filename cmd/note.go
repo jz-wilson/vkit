@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jz-wilson/vkit/cmd/ui"
+	"github.com/jz-wilson/vkit/cmd/style"
 	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/note"
 	"github.com/jz-wilson/vkit/internal/vaultpath"
@@ -48,13 +48,13 @@ var noteCmd = &cobra.Command{
 		if title == "" {
 			title = note.DeriveTitle(relPath)
 		}
-		fmt.Println(ui.Section("📝", "Note created"))
-		fmt.Println(ui.Step(true, ui.Dim(resolvedPath)))
-		fmt.Println(ui.Row("title", title))
+		fmt.Println(style.Section("📝", "Note created"))
+		fmt.Println(style.Step(true, style.Dim(resolvedPath)))
+		fmt.Println(style.Row("title", title))
 		if len(tags) > 0 {
-			fmt.Println(ui.Row("tags", "["+strings.Join(tags, ", ")+"]"))
+			fmt.Println(style.Row("tags", "["+strings.Join(tags, ", ")+"]"))
 		}
-		fmt.Println(ui.Step(true, fmt.Sprintf("MOC rebuilt (%d notes)", n)))
+		fmt.Println(style.Step(true, fmt.Sprintf("MOC rebuilt (%d notes)", n)))
 		return nil
 	},
 }

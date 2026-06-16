@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jz-wilson/vkit/cmd/ui"
+	"github.com/jz-wilson/vkit/cmd/style"
 	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/osdetect"
 	"github.com/jz-wilson/vkit/internal/scaffold"
@@ -38,7 +38,7 @@ var updateCmd = &cobra.Command{
 		}
 
 		// have_tty(): a real /dev/tty must be openable for the prompt to run.
-		fmt.Println(ui.Section("🔧", "Update"))
+		fmt.Println(style.Section("🔧", "Update"))
 
 		hasTTY := osdetect.Detect("").HasTTY
 		in, closeIn := promptInput(hasTTY)
@@ -58,12 +58,12 @@ var updateCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println(ui.Step(true, fmt.Sprintf("MOC rebuilt (%d notes)", n)))
-		fmt.Println(ui.Summary(
+		fmt.Println(style.Step(true, fmt.Sprintf("MOC rebuilt (%d notes)", n)))
+		fmt.Println(style.Summary(
 			res.Action,
 			fmt.Sprintf("%d tooling, %d added, %d overwritten, %d kept", res.Tool, res.New, res.Over, res.Keep),
 		))
-		fmt.Println(ui.Dim("  Backups (if any) written as <file>.bak — review & commit yourself."))
+		fmt.Println(style.Dim("  Backups (if any) written as <file>.bak — review & commit yourself."))
 		return nil
 	},
 }

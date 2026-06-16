@@ -1,5 +1,5 @@
-// Package ui provides shared lipgloss styles and print helpers for vkit commands.
-package ui
+// Package style provides shared lipgloss styles and print helpers for vkit commands.
+package style
 
 import (
 	"fmt"

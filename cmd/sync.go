@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jz-wilson/vkit/cmd/ui"
+	"github.com/jz-wilson/vkit/cmd/style"
 	"github.com/jz-wilson/vkit/internal/config"
 	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/vaultpath"
@@ -26,13 +26,13 @@ var syncCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println(ui.Section("🔄", "Sync"))
+		fmt.Println(style.Section("🔄", "Sync"))
 
 		n, err := moc.Build(vault, vaultpath.Today())
 		if err != nil {
 			return err
 		}
-		fmt.Println(ui.Step(true, fmt.Sprintf("Rebuilt MOC.md (%d notes)", n)))
+		fmt.Println(style.Step(true, fmt.Sprintf("Rebuilt MOC.md (%d notes)", n)))
 
 		// Stage ONLY documentation assets — never `git add -A`.
 		addArgs := []string{"add", "--", "*.md", "MOC.md"}
@@ -47,10 +47,10 @@ var syncCmd = &cobra.Command{
 
 		if stagedStr, err := gitOutput(vault, "diff", "--cached", "--name-only"); err == nil && stagedStr != "" {
 			lines := strings.Split(stagedStr, "\n")
-			fmt.Println(ui.Step(true, fmt.Sprintf("Staged %d files", len(lines))))
+			fmt.Println(style.Step(true, fmt.Sprintf("Staged %d files", len(lines))))
 			for _, f := range lines {
 				if f != "" {
-					fmt.Println("    " + ui.Dim(f))
+					fmt.Println("    " + style.Dim(f))
 				}
 			}
 		}
@@ -60,10 +60,10 @@ var syncCmd = &cobra.Command{
 			msg = "vault: sync"
 		}
 		if err := gitCommit(vault, msg, false); err != nil {
-			fmt.Fprintln(os.Stderr, ui.Step(false, "nothing committed (no staged changes?)"))
+			fmt.Fprintln(os.Stderr, style.Step(false, "nothing committed (no staged changes?)"))
 			return nil
 		}
-		fmt.Println(ui.Step(true, "Committed: "+ui.Dim(msg)))
+		fmt.Println(style.Step(true, "Committed: "+style.Dim(msg)))
 		return nil
 	},
 }

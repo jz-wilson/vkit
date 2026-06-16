@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jz-wilson/vkit/cmd/ui"
+	"github.com/jz-wilson/vkit/cmd/style"
 	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
@@ -23,8 +23,8 @@ var mocCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println(ui.Section("🗂️", "MOC"))
-		fmt.Println(ui.Step(true, fmt.Sprintf("Wrote MOC.md (%d notes)", n)))
+		fmt.Println(style.Section("🗂️", "MOC"))
+		fmt.Println(style.Step(true, fmt.Sprintf("Wrote MOC.md (%d notes)", n)))
 		return nil
 	},
 }

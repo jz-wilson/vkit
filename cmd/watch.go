@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jz-wilson/vkit/cmd/ui"
+	"github.com/jz-wilson/vkit/cmd/style"
 	"github.com/jz-wilson/vkit/internal/watcher"
 )
 
@@ -24,8 +24,8 @@ var watchCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Println(ui.Section("👁️", "Watch"))
-		fmt.Println(ui.Step(true, ui.Dim(vault)))
+		fmt.Println(style.Section("👁️", "Watch"))
+		fmt.Println(style.Step(true, style.Dim(vault)))
 		return watcher.Watch(vault, watchPoll, time.Duration(watchInterval)*time.Second)
 	},
 }

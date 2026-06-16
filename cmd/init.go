@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jz-wilson/vkit/cmd/ui"
+	"github.com/jz-wilson/vkit/cmd/style"
 	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/osdetect"
 	"github.com/jz-wilson/vkit/internal/scaffold"
@@ -35,25 +35,25 @@ var initCmd = &cobra.Command{
 		if err := scaffold.Install(vault); err != nil {
 			return err
 		}
-		fmt.Println(ui.Step(true, "Scaffolded vault structure"))
+		fmt.Println(style.Step(true, "Scaffolded vault structure"))
 
 		// git: init if absent, always (re)point hooksPath at our hook dir.
 		if _, err := os.Stat(filepath.Join(vault, ".git")); err != nil {
 			if err := git(vault, "init", "-q"); err != nil {
 				return err
 			}
-			fmt.Println(ui.Step(true, "git init"))
+			fmt.Println(style.Step(true, "git init"))
 		}
 		if err := git(vault, "config", "core.hooksPath", ".githooks"); err != nil {
 			return err
 		}
-		fmt.Println(ui.Step(true, "Set core.hooksPath → .githooks"))
+		fmt.Println(style.Step(true, "Set core.hooksPath → .githooks"))
 
 		n, err := moc.Build(vault, vaultpath.Today())
 		if err != nil {
 			return err
 		}
-		fmt.Println(ui.Step(true, fmt.Sprintf("Built MOC.md (%d notes)", n)))
+		fmt.Println(style.Step(true, fmt.Sprintf("Built MOC.md (%d notes)", n)))
 
 		// Initial commit (fresh install only — safe to add everything).
 		// --no-verify: the pre-commit hook calls `vkit`, which may not be on PATH
@@ -64,29 +64,29 @@ var initCmd = &cobra.Command{
 		if err := gitCommit(vault, "vault: initial scaffold", true); err != nil {
 			return fmt.Errorf("initial commit: %w", err)
 		}
-		fmt.Println(ui.Step(true, "Initial commit"))
+		fmt.Println(style.Step(true, "Initial commit"))
 
 		fmt.Println()
 		info := osdetect.Detect(vault)
-		fmt.Println(ui.Line("🚀", ui.StyleLabel.Render("Vault initialized")))
+		fmt.Println(style.Line("🚀", style.StyleLabel.Render("Vault initialized")))
 		fmt.Println()
-		fmt.Println(ui.Row("OS", info.OS))
-		fmt.Println(ui.Row("Vault", ui.Dim(vault)))
-		fmt.Println(ui.Row("Index", fmt.Sprintf("MOC.md (%d notes)", n)))
-		fmt.Println(ui.Row("Obsidian", obsidianStatus(info)))
-		fmt.Printf("\n%s\n", ui.Dim(fmt.Sprintf("Keep the index fresh with `vkit watch --vault %s`\n(or install a service from %s)", vault, filepath.Join(vault, "services"))))
+		fmt.Println(style.Row("OS", info.OS))
+		fmt.Println(style.Row("Vault", style.Dim(vault)))
+		fmt.Println(style.Row("Index", fmt.Sprintf("MOC.md (%d notes)", n)))
+		fmt.Println(style.Row("Obsidian", obsidianStatus(info)))
+		fmt.Printf("\n%s\n", style.Dim(fmt.Sprintf("Keep the index fresh with `vkit watch --vault %s`\n(or install a service from %s)", vault, filepath.Join(vault, "services"))))
 		return nil
 	},
 }
 
 func obsidianStatus(info osdetect.Info) string {
 	if info.ObsidianCLI {
-		return ui.StyleSuccess.Render("native mode enabled")
+		return style.StyleSuccess.Render("native mode enabled")
 	}
 	if info.ObsidianBinary {
-		return ui.StyleDim.Render("native mode disabled (unset VAULT_OBSIDIAN_CLI=0 to enable)")
+		return style.StyleDim.Render("native mode disabled (unset VAULT_OBSIDIAN_CLI=0 to enable)")
 	}
-	return ui.StyleDim.Render("portable mode (obsidian binary not found)")
+	return style.StyleDim.Render("portable mode (obsidian binary not found)")
 }
 
 func git(vault string, args ...string) error {

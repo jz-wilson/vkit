@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/jz-wilson/vkit/cmd/ui"
+	"github.com/jz-wilson/vkit/cmd/style"
 	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/rename"
 	"github.com/jz-wilson/vkit/internal/vaultpath"
@@ -26,18 +26,18 @@ var renameCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		header := ui.Section("✏️", "Rename") + "  " + ui.Dim(args[0]+" → "+args[1])
+		header := style.Section("✏️", "Rename") + "  " + style.Dim(args[0]+" → "+args[1])
 		if renameDryRun {
 			fmt.Println(header)
-			fmt.Println(ui.Step(true, "(dry) git mv "+args[0]+" → "+args[1]))
-			fmt.Println(ui.Step(true, fmt.Sprintf("(dry) Scanned %d files", res.Scanned)))
-			fmt.Println(ui.Step(true, fmt.Sprintf("(dry) Rewrote %d links", res.Rewritten)))
+			fmt.Println(style.Step(true, "(dry) git mv "+args[0]+" → "+args[1]))
+			fmt.Println(style.Step(true, fmt.Sprintf("(dry) Scanned %d files", res.Scanned)))
+			fmt.Println(style.Step(true, fmt.Sprintf("(dry) Rewrote %d links", res.Rewritten)))
 			for _, f := range res.Touched {
 				if f != args[1] {
-					fmt.Println("    " + ui.Dim(f))
+					fmt.Println("    " + style.Dim(f))
 				}
 			}
-			fmt.Println(ui.Summary("no changes written"))
+			fmt.Println(style.Summary("no changes written"))
 			return nil
 		}
 		n, err := moc.Build(vault, vaultpath.Today())
@@ -45,16 +45,16 @@ var renameCmd = &cobra.Command{
 			return err
 		}
 		fmt.Println(header)
-		fmt.Println(ui.Step(true, "git mv "+args[0]+" → "+args[1]))
-		fmt.Println(ui.Step(true, fmt.Sprintf("Scanned %d files", res.Scanned)))
-		fmt.Println(ui.Step(true, fmt.Sprintf("Rewrote %d links", res.Rewritten)))
+		fmt.Println(style.Step(true, "git mv "+args[0]+" → "+args[1]))
+		fmt.Println(style.Step(true, fmt.Sprintf("Scanned %d files", res.Scanned)))
+		fmt.Println(style.Step(true, fmt.Sprintf("Rewrote %d links", res.Rewritten)))
 		for _, f := range res.Touched {
 			if f != args[1] {
-				fmt.Println("    " + ui.Dim(f))
+				fmt.Println("    " + style.Dim(f))
 			}
 		}
-		fmt.Println(ui.Step(true, fmt.Sprintf("MOC rebuilt (%d notes)", n)))
-		fmt.Println(ui.Summary("Renamed "+args[0]+" → "+args[1], fmt.Sprintf("%d files updated", res.Rewritten)))
+		fmt.Println(style.Step(true, fmt.Sprintf("MOC rebuilt (%d notes)", n)))
+		fmt.Println(style.Summary("Renamed "+args[0]+" → "+args[1], fmt.Sprintf("%d files updated", res.Rewritten)))
 		return nil
 	},
 }
