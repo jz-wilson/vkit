@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jz-wilson/vkit/cmd/ui"
+	"github.com/jz-wilson/vkit/internal/config"
 	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
@@ -35,12 +36,14 @@ var syncCmd = &cobra.Command{
 
 		// Stage ONLY documentation assets — never `git add -A`.
 		addArgs := []string{"add", "--", "*.md", "MOC.md"}
-		for _, d := range []string{"decisions", "infrastructure", "projects", "reference"} {
+		for _, d := range config.ContentDirs(vault) {
 			if fi, err := os.Stat(filepath.Join(vault, d)); err == nil && fi.IsDir() {
 				addArgs = append(addArgs, d)
 			}
 		}
-		_ = git(vault, addArgs...)
+		if err := git(vault, addArgs...); err != nil {
+			return fmt.Errorf("git add: %w", err)
+		}
 
 		if stagedStr, err := gitOutput(vault, "diff", "--cached", "--name-only"); err == nil && stagedStr != "" {
 			lines := strings.Split(stagedStr, "\n")

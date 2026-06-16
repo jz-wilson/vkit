@@ -173,6 +173,13 @@ func TestLinkRewriterRewrite(t *testing.T) {
 			newStem: "new-note",
 			want:    "no wiki links at all",
 		},
+		{
+			name:    "link inside code fence not rewritten",
+			content: "see [[old-note]] here\n```\n[[old-note]] in fence\n```\nand [[old-note]] after",
+			oldStem: "old-note",
+			newStem: "new-note",
+			want:    "see [[new-note]] here\n```\n[[old-note]] in fence\n```\nand [[new-note]] after",
+		},
 	}
 
 	for _, tc := range tests {

@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/jz-wilson/vkit/internal/config"
 )
 
 func read(t *testing.T, p string) string {
@@ -156,7 +158,7 @@ func TestInstallTree(t *testing.T) {
 			t.Errorf("missing %s", f)
 		}
 	}
-	for _, d := range contentDirs {
+	for _, d := range config.DefaultContentDirs {
 		if !exists2(filepath.Join(v, d)) {
 			t.Errorf("missing content dir %s", d)
 		}

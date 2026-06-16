@@ -58,8 +58,12 @@ var initCmd = &cobra.Command{
 		// Initial commit (fresh install only — safe to add everything).
 		// --no-verify: the pre-commit hook calls `vkit`, which may not be on PATH
 		// yet at bootstrap, and the generated scaffold is known-valid anyway.
-		_ = git(vault, "add", "-A")
-		_ = gitCommit(vault, "vault: initial scaffold", true)
+		if err := git(vault, "add", "-A"); err != nil {
+			return err
+		}
+		if err := gitCommit(vault, "vault: initial scaffold", true); err != nil {
+			return fmt.Errorf("initial commit: %w", err)
+		}
 		fmt.Println(ui.Step(true, "Initial commit"))
 
 		fmt.Println()

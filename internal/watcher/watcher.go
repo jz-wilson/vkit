@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -254,21 +253,30 @@ func Watch(vault string, poll bool, interval time.Duration) error {
 // coalesces rapid bursts of events into a single rebuild call.
 func watchFsnotifyDebounced(src EventSource, rebuild func() error) error {
 	defer src.Close()
-	var mu sync.Mutex
-	var timer *time.Timer
-	for range src.Events() {
-		mu.Lock()
-		if timer != nil {
-			timer.Stop()
-		}
-		timer = time.AfterFunc(300*time.Millisecond, func() {
+	const debounce = 300 * time.Millisecond
+	timer := time.NewTimer(debounce)
+	timer.Stop() // don't fire until we get an event
+	defer timer.Stop()
+	pending := false
+	events := src.Events()
+	for {
+		select {
+		case _, ok := <-events:
+			if !ok {
+				return nil
+			}
+			if pending {
+				timer.Stop()
+			}
+			timer.Reset(debounce)
+			pending = true
+		case <-timer.C:
+			pending = false
 			if err := rebuild(); err != nil {
 				fmt.Fprintf(os.Stderr, "watch: rebuild failed: %v\n", err)
 			}
-		})
-		mu.Unlock()
+		}
 	}
-	return nil
 }
 
 // newestNote returns the mtime of the most recently modified non-ignored .md

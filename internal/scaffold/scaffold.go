@@ -15,6 +15,8 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/huh"
+
+	"github.com/jz-wilson/vkit/internal/config"
 )
 
 //go:embed all:templates
@@ -40,7 +42,6 @@ var tier2Files = []string{
 }
 
 // contentDirs are created (empty) on a fresh install.
-var contentDirs = []string{"decisions", "infrastructure", "projects", "reference", "archive"}
 
 // Mode pre-answers the update prompt.
 type Mode int
@@ -181,7 +182,7 @@ func Install(vault string) error {
 	if err != nil {
 		return err
 	}
-	for _, dir := range contentDirs {
+	for _, dir := range config.DefaultContentDirs {
 		if err := os.MkdirAll(filepath.Join(vault, dir), 0o755); err != nil {
 			return err
 		}

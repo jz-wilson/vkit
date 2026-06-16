@@ -40,11 +40,21 @@ func (LinkRewriter) Rewrite(content, oldStem, newStem string) string {
 		rules = append(rules, rule{linkRe(oldBase), "[[" + newBase + "${1}"})
 	}
 
-	out := content
-	for _, r := range rules {
-		out = r.re.ReplaceAllString(out, r.rep)
+	lines := strings.Split(content, "\n")
+	inFence := false
+	for i, line := range lines {
+		if strings.HasPrefix(line, "```") {
+			inFence = !inFence
+			continue
+		}
+		if inFence {
+			continue
+		}
+		for _, r := range rules {
+			lines[i] = r.re.ReplaceAllString(lines[i], r.rep)
+		}
 	}
-	return out
+	return strings.Join(lines, "\n")
 }
 
 // Result holds the outcome of a Rename call.
