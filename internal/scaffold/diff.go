@@ -49,6 +49,7 @@ func delta(cur, kit string) string {
 }
 
 func splitLines(s string) []string {
+	s = strings.ReplaceAll(s, "\r\n", "\n")
 	s = strings.TrimSuffix(s, "\n")
 	if s == "" {
 		return nil

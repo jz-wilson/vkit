@@ -5,6 +5,7 @@ package validate
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -90,7 +91,7 @@ func checkFile(rel, path string) []Problem {
 		}
 	}
 	if !hasUpdated {
-		probs = append(probs, Problem{rel, "missing 'updated:' frontmatter"})
+		probs = append(probs, Problem{rel, fmt.Sprintf("line 1: missing 'updated:' frontmatter")})
 	}
 
 	// Check H1 count and absolute paths in the body.
@@ -103,7 +104,7 @@ func checkFile(rel, path string) []Problem {
 	}
 	h1 := 0
 	inFence := false
-	for _, line := range lines[bodyStart:] {
+	for i, line := range lines[bodyStart:] {
 		if strings.HasPrefix(line, "```") {
 			inFence = !inFence
 			continue // skip fence marker lines for both H1 and abs-path
@@ -112,7 +113,8 @@ func checkFile(rel, path string) []Problem {
 			h1++
 		}
 		if absPathRe.MatchString(line) {
-			probs = append(probs, Problem{rel, "absolute path in body — use [[wikilinks]]"})
+			lineNum := bodyStart + i + 1 // 1-based
+			probs = append(probs, Problem{rel, fmt.Sprintf("line %d: absolute path in body — use [[wikilinks]]", lineNum)})
 			break
 		}
 	}
