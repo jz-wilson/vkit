@@ -47,9 +47,15 @@ func renderPanel(title, body string, focused bool, w, h int) string {
 	style := panelStyle(focused)
 	innerW, innerH := innerDims(w, h)
 
-	head := lipgloss.NewStyle().Bold(true).Foreground(colorTitle).Render(title)
-	content := lipgloss.NewStyle().Width(innerW).Height(innerH).MaxHeight(innerH).Render(body)
-	return style.Width(innerW).Render(head + "\n" + content)
+	// Pad short lines to innerW and hard-truncate long ones (MaxWidth) so a long
+	// title or list row can never overflow the box and corrupt the surrounding
+	// layout. The outer style sets no explicit Width: the box sizes itself to the
+	// innerW-wide content, then adds its own padding (2) and border (2) to reach w.
+	head := lipgloss.NewStyle().Bold(true).Foreground(colorTitle).
+		Width(innerW).MaxWidth(innerW).Render(title)
+	content := lipgloss.NewStyle().
+		Width(innerW).MaxWidth(innerW).Height(innerH).MaxHeight(innerH).Render(body)
+	return style.Render(head + "\n" + content)
 }
 
 // colorError is used for validation problem text.
