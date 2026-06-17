@@ -63,54 +63,21 @@ func TestResolveEnvBeatsWalkUp(t *testing.T) {
 	}
 }
 
-// TestResolveWalkUpFindsMarker: with no arg/flag/env, Resolve climbs from the
-// cwd to the nearest ancestor containing the marker.
-func TestResolveWalkUpFindsMarker(t *testing.T) {
-	v := t.TempDir()
-	write(t, v, Marker, "# Format\n")
-	sub := filepath.Join(v, "a", "b")
-	if err := os.MkdirAll(sub, 0o755); err != nil {
-		t.Fatal(err)
-	}
-	chdir(t, sub)
-	t.Setenv("VKIT_VAULT", "")
-
-	got, err := Resolve("", "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	// t.TempDir on macOS lives under /private/var symlinked from /var; the
-	// walk-up returns the real getwd path, so resolve symlinks before compare.
-	wantReal, _ := filepath.EvalSymlinks(v)
-	gotReal, _ := filepath.EvalSymlinks(got)
-	if gotReal != wantReal {
-		t.Errorf("Resolve walk-up = %q want %q", gotReal, wantReal)
-	}
-}
-
-// TestResolveFallsBackToHomeVault: with no arg/flag/env and no marker anywhere
-// up the tree, Resolve falls back to $HOME/vault.
-func TestResolveFallsBackToHomeVault(t *testing.T) {
-	// cwd with no marker up to root: use a temp dir that has no _format.md.
+// TestResolveFallsBackToCWD: with no arg/flag/env, Resolve returns the current
+// working directory.
+func TestResolveFallsBackToCWD(t *testing.T) {
 	dir := t.TempDir()
 	chdir(t, dir)
 	t.Setenv("VKIT_VAULT", "")
-	home := t.TempDir()
-	t.Setenv("HOME", home)
-	// os.UserHomeDir reads %USERPROFILE% on Windows, $HOME elsewhere — set both
-	// so the fallback resolves to our temp home on every OS.
-	t.Setenv("USERPROFILE", home)
 
 	got, err := Resolve("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := filepath.Join(home, "vault")
-	// The cwd temp dir must not itself sit under a marked ancestor. If the test
-	// runner's tmp tree contains a stray _format.md this would fail; tmp dirs
-	// are isolated so this holds in practice.
-	if got != want {
-		t.Errorf("Resolve home fallback = %q want %q", got, want)
+	wantReal, _ := filepath.EvalSymlinks(dir)
+	gotReal, _ := filepath.EvalSymlinks(got)
+	if gotReal != wantReal {
+		t.Errorf("Resolve CWD fallback = %q want %q", gotReal, wantReal)
 	}
 }
 

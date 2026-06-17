@@ -40,9 +40,8 @@ var skipNames = map[string]bool{
 }
 
 // Resolve picks the vault root from, in order: an explicit arg, the --vault
-// flag, $VKIT_VAULT, a walk-up search for the _format.md marker, then
-// $HOME/vault. The returned path is absolute. It does not require the path to
-// exist (callers that need existence check separately).
+// flag, $VKIT_VAULT, then the current working directory. The returned path is
+// absolute. It does not require the path to exist (callers check separately).
 func Resolve(arg, flag string) (string, error) {
 	if arg != "" {
 		return filepath.Abs(arg)
@@ -53,33 +52,7 @@ func Resolve(arg, flag string) (string, error) {
 	if env := os.Getenv("VKIT_VAULT"); env != "" {
 		return filepath.Abs(env)
 	}
-	if root, ok := walkUp(); ok {
-		return root, nil
-	}
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	return filepath.Join(home, "vault"), nil
-}
-
-// walkUp climbs from the current directory looking for a dir containing the
-// vault marker.
-func walkUp() (string, bool) {
-	dir, err := os.Getwd()
-	if err != nil {
-		return "", false
-	}
-	for {
-		if _, err := os.Stat(filepath.Join(dir, Marker)); err == nil {
-			return dir, true
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return "", false
-		}
-		dir = parent
-	}
+	return os.Getwd()
 }
 
 // IsVault reports whether path looks like a vault root (has the marker).
