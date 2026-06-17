@@ -134,9 +134,8 @@ func TestCreateMakesParentDirs(t *testing.T) {
 	}
 }
 
-// TestTitleFromFilename exercises the kebab/underscore -> Title Case derivation
-// directly across the relevant cases.
-func TestTitleFromFilename(t *testing.T) {
+// TestDeriveTitle exercises the kebab/underscore -> Title Case derivation.
+func TestDeriveTitle(t *testing.T) {
 	cases := map[string]string{
 		"projects/my-cool-note.md": "My Cool Note",
 		"foo.md":                   "Foo",
@@ -148,24 +147,35 @@ func TestTitleFromFilename(t *testing.T) {
 		"UPPER-word.md":            "UPPER Word",    // first rune upcased, rest preserved
 	}
 	for rel, want := range cases {
-		if got := titleFromFilename(rel); got != want {
-			t.Errorf("titleFromFilename(%q)=%q want %q", rel, got, want)
+		if got := DeriveTitle(rel); got != want {
+			t.Errorf("DeriveTitle(%q)=%q want %q", rel, got, want)
 		}
 	}
 }
 
-// TestRender exercises the frontmatter/body builder directly.
-func TestRender(t *testing.T) {
-	got := render("Title", []string{"x", "y"}, "2026-06-14")
+// TestCreate_Content verifies the frontmatter/body content written to disk.
+func TestCreate_Content(t *testing.T) {
+	vault := t.TempDir()
+	if err := Create(vault, "note.md", "Title", []string{"x", "y"}, "2026-06-14"); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(filepath.Join(vault, "note.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	want := "---\nupdated: 2026-06-14\ntags: [x, y]\n---\n\n# Title\n\n## Summary\n\n## Notes\n\n## Related\n"
-	if got != want {
-		t.Errorf("render:\n%q\nwant:\n%q", got, want)
+	if string(data) != want {
+		t.Errorf("content:\n%q\nwant:\n%q", string(data), want)
 	}
 
-	gotNoTags := render("Title", nil, "2026-06-14")
+	vault2 := t.TempDir()
+	if err := Create(vault2, "note.md", "Title", nil, "2026-06-14"); err != nil {
+		t.Fatal(err)
+	}
+	data2, _ := os.ReadFile(filepath.Join(vault2, "note.md"))
 	wantNoTags := "---\nupdated: 2026-06-14\n---\n\n# Title\n\n## Summary\n\n## Notes\n\n## Related\n"
-	if gotNoTags != wantNoTags {
-		t.Errorf("render no-tags:\n%q\nwant:\n%q", gotNoTags, wantNoTags)
+	if string(data2) != wantNoTags {
+		t.Errorf("no-tags content:\n%q\nwant:\n%q", string(data2), wantNoTags)
 	}
 }
 

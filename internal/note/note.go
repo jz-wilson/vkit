@@ -13,8 +13,6 @@ import (
 	"github.com/jz-wilson/vkit/internal/obsidianconfig"
 )
 
-// ensureMD appends ".md" to relPath when it has no .md extension, so callers
-// can pass bare stems ("projects/alpha") or full names ("projects/alpha.md").
 // EnsureMD appends ".md" to relPath when it has no .md extension.
 func EnsureMD(relPath string) string {
 	if strings.HasSuffix(relPath, ".md") {
@@ -23,43 +21,8 @@ func EnsureMD(relPath string) string {
 	return relPath + ".md"
 }
 
-func ensureMD(relPath string) string { return EnsureMD(relPath) }
-
-// Create scaffolds a note at relPath (relative to vault). It refuses to
-// overwrite an existing file. title, if empty, is derived from the filename
-// (kebab -> Title Case). tags may be nil.
-func Create(vault, relPath, title string, tags []string, today string) error {
-	relPath = ensureMD(relPath)
-	if title == "" {
-		title = titleFromFilename(relPath)
-	}
-	full := filepath.Join(vault, relPath)
-	if _, err := os.Stat(full); err == nil {
-		return fmt.Errorf("%s already exists — refusing to overwrite", relPath)
-	}
-	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-		return err
-	}
-	return os.WriteFile(full, []byte(render(title, tags, today)), 0o644)
-}
-
-func render(title string, tags []string, today string) string {
-	var b strings.Builder
-	b.WriteString("---\n")
-	fmt.Fprintf(&b, "updated: %s\n", today)
-	if len(tags) > 0 {
-		fmt.Fprintf(&b, "tags: [%s]\n", strings.Join(tags, ", "))
-	}
-	b.WriteString("---\n\n")
-	fmt.Fprintf(&b, "# %s\n\n%s\n", title, bodySkeleton)
-	return b.String()
-}
-
-// bodySkeleton is the section scaffold shared by the portable and native paths.
-const bodySkeleton = "## Summary\n\n## Notes\n\n## Related"
-
-// titleFromFilename turns "projects/my-cool-note.md" into "My Cool Note".
-func titleFromFilename(relPath string) string {
+// DeriveTitle turns "projects/my-cool-note.md" into "My Cool Note".
+func DeriveTitle(relPath string) string {
 	base := filepath.Base(relPath)
 	base = strings.TrimSuffix(base, filepath.Ext(base))
 	base = strings.ReplaceAll(base, "_", "-")
@@ -73,6 +36,35 @@ func titleFromFilename(relPath string) string {
 	return strings.Join(parts, " ")
 }
 
+// Create scaffolds a note at relPath (relative to vault). It refuses to
+// overwrite an existing file. title, if empty, is derived from the filename
+// (kebab -> Title Case). tags may be nil.
+func Create(vault, relPath, title string, tags []string, today string) error {
+	relPath = EnsureMD(relPath)
+	if title == "" {
+		title = DeriveTitle(relPath)
+	}
+	full := filepath.Join(vault, relPath)
+	if _, err := os.Stat(full); err == nil {
+		return fmt.Errorf("%s already exists — refusing to overwrite", relPath)
+	}
+	if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+		return err
+	}
+	var b strings.Builder
+	b.WriteString("---\n")
+	fmt.Fprintf(&b, "updated: %s\n", today)
+	if len(tags) > 0 {
+		fmt.Fprintf(&b, "tags: [%s]\n", strings.Join(tags, ", "))
+	}
+	b.WriteString("---\n\n")
+	fmt.Fprintf(&b, "# %s\n\n%s\n", title, bodySkeleton)
+	return os.WriteFile(full, []byte(b.String()), 0o644)
+}
+
+// bodySkeleton is the section scaffold shared by the portable and native paths.
+const bodySkeleton = "## Summary\n\n## Notes\n\n## Related"
+
 // Creator is the seam between the note package and its callers.
 // Use New() to obtain the appropriate implementation for the current host.
 // Create returns the resolved vault-relative path (with .md and any folder
@@ -80,9 +72,6 @@ func titleFromFilename(relPath string) string {
 type Creator interface {
 	Create(vault, relPath, title string, tags []string, today string) (string, error)
 }
-
-// DeriveTitle converts a vault-relative relPath to a Title Case title.
-func DeriveTitle(relPath string) string { return titleFromFilename(relPath) }
 
 type portableCreator struct{}
 
@@ -95,13 +84,13 @@ func (portableCreator) Create(vault, relPath, title string, tags []string, today
 			relPath = folder + "/" + relPath
 		}
 	}
-	return ensureMD(relPath), Create(vault, relPath, title, tags, today)
+	return EnsureMD(relPath), Create(vault, relPath, title, tags, today)
 }
 
 type nativeCreator struct{}
 
 func (nativeCreator) Create(vault, relPath, title string, tags []string, today string) (string, error) {
-	return ensureMD(relPath), CreateNative(vault, relPath, title, tags, today)
+	return EnsureMD(relPath), CreateNative(vault, relPath, title, tags, today)
 }
 
 // New returns the appropriate Creator for the current host.
@@ -122,9 +111,9 @@ type execFunc func(vault string, args ...string) error
 // createNative is the testable core of CreateNative — accepts an exec hook so
 // tests can inject a fake without spawning a real obsidian process.
 func createNative(vault, relPath, title string, tags []string, today string, exec execFunc) error {
-	relPath = ensureMD(relPath)
+	relPath = EnsureMD(relPath)
 	if title == "" {
-		title = titleFromFilename(relPath)
+		title = DeriveTitle(relPath)
 	}
 	content := fmt.Sprintf("# %s\n\n%s", title, bodySkeleton)
 	if err := exec(vault, "create", "path="+relPath, "content="+content); err != nil {

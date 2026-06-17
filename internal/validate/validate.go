@@ -99,9 +99,6 @@ func checkFile(rel, path string) []Problem {
 	// Abs-path check matches bash hook behavior: fires inside fences too, but
 	// skips the fence marker line itself (which may carry an info string with a path).
 	bodyStart := fmEnd + 1
-	if bodyStart < 0 {
-		bodyStart = 0
-	}
 	h1 := 0
 	inFence := false
 	for i, line := range lines[bodyStart:] {

@@ -287,7 +287,11 @@ func Update(vault string, mode Mode, dryRun bool, decider Decider, out io.Writer
 	res := Result{Action: action}
 	switch action {
 	case "apply":
-		res.Tool, res.New, res.Over = applyCopies(vault, e.T1Change), applyCopies(vault, e.T2New), applyOverwrite(vault, e.T2Change, out)
+		res.Tool, res.New = applyCopies(vault, e.T1Change), applyCopies(vault, e.T2New)
+		for _, f := range e.T2Change {
+			overwriteWithBak(vault, f, out)
+			res.Over++
+		}
 	case "safe":
 		res.Tool, res.New = applyCopies(vault, e.T1Change), applyCopies(vault, e.T2New)
 		res.Keep = len(e.T2Change)
@@ -357,15 +361,6 @@ func applyCopies(vault string, files []string) int {
 		if copyTemplate(vault, f) == nil {
 			n++
 		}
-	}
-	return n
-}
-
-func applyOverwrite(vault string, files []string, out io.Writer) int {
-	n := 0
-	for _, f := range files {
-		overwriteWithBak(vault, f, out)
-		n++
 	}
 	return n
 }

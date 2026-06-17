@@ -89,16 +89,6 @@ func hasTTY() bool {
 	return true
 }
 
-// obsidianEnabled reports whether native Obsidian mode is active. It enables
-// automatically when the obsidian binary is on PATH; set VAULT_OBSIDIAN_CLI=0
-// to disable explicitly.
-func obsidianEnabled() bool {
-	if os.Getenv("VAULT_OBSIDIAN_CLI") == "0" {
-		return false
-	}
-	return obsidianBinaryFound(lookPath)
-}
-
 func obsidianBinaryFound(look func(string) (string, error)) bool {
 	_, err := look("obsidian")
 	return err == nil
