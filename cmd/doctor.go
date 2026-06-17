@@ -11,10 +11,15 @@ import (
 )
 
 var doctorCmd = &cobra.Command{
-	Use:   "doctor",
+	Use:   "doctor [vault]",
 	Short: "Print detected OS, package manager, systemd, tty, and Obsidian state.",
+	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		vault, _ := vaultpath.Resolve("", vaultFlag)
+		arg := ""
+		if len(args) > 0 {
+			arg = args[0]
+		}
+		vault, _ := vaultpath.Resolve(arg, vaultFlag)
 		info := osdetect.Detect(vault)
 
 		fmt.Println(style.Section("🩺", "System"))
