@@ -91,19 +91,3 @@ func TestKeyVValidatesSelectedNote(t *testing.T) {
 		t.Fatalf("'v' did not validate the selected note: %#v", done)
 	}
 }
-
-func TestKeyMRebuildsMoc(t *testing.T) {
-	v := invalidVault(t)
-	var model tea.Model = NewRootModel(v)
-	_, cmd := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("m")})
-	if cmd == nil {
-		t.Fatalf("'m' should trigger a MOC rebuild")
-	}
-	msg, ok := cmd().(MocRebuiltMsg)
-	if !ok || msg.Err != nil {
-		t.Fatalf("'m' did not rebuild MOC: %#v", msg)
-	}
-	if _, err := os.Stat(filepath.Join(v, "MOC.md")); err != nil {
-		t.Fatalf("MOC.md was not written: %v", err)
-	}
-}

@@ -93,7 +93,7 @@ func runRootCapture(t *testing.T, args ...string) (string, error) {
 // ----------------------------------------------------------------------------
 
 func TestRootCommandsRegistered(t *testing.T) {
-	want := []string{"init", "update", "moc", "watch", "validate", "note", "rename", "sync", "doctor"}
+	want := []string{"init", "update", "validate", "note", "rename", "sync", "doctor"}
 	have := map[string]bool{}
 	for _, c := range rootCmd.Commands() {
 		have[c.Name()] = true
@@ -126,7 +126,7 @@ func TestRootHelp(t *testing.T) {
 		t.Errorf("help output missing program name: %q", out)
 	}
 	// every registered subcommand should appear in help text
-	for _, name := range []string{"init", "moc", "validate", "note", "sync", "doctor"} {
+	for _, name := range []string{"init", "validate", "note", "sync", "doctor"} {
 		if !strings.Contains(out, name) {
 			t.Errorf("help missing subcommand %q", name)
 		}
@@ -155,8 +155,6 @@ func TestSubcommandFlagsDefined(t *testing.T) {
 		{"update", "force"},
 		{"update", "keep"},
 		{"update", "dry-run"},
-		{"watch", "poll"},
-		{"watch", "interval"},
 	}
 	for _, tc := range cases {
 		var found bool
@@ -210,47 +208,6 @@ func TestVersionFlag(t *testing.T) {
 func TestVersionDefault(t *testing.T) {
 	if Version != "dev" {
 		t.Errorf("default Version = %q, want \"dev\"", Version)
-	}
-}
-
-// ----------------------------------------------------------------------------
-// moc
-// ----------------------------------------------------------------------------
-
-func TestMocOutputHeader(t *testing.T) {
-	v := vault(t)
-	writeNote(t, v, "projects/alpha.md", "---\nupdated: 2026-06-14\n---\n\n# Alpha\n")
-	out, err := runRootCapture(t, "moc")
-	if err != nil {
-		t.Fatalf("moc error: %v", err)
-	}
-	for _, want := range []string{"MOC", "Wrote MOC.md"} {
-		if !strings.Contains(out, want) {
-			t.Errorf("moc output missing %q:\n%s", want, out)
-		}
-	}
-}
-
-func TestMocBuildsIndex(t *testing.T) {
-	v := vault(t)
-	writeNote(t, v, "projects/alpha.md", "---\nupdated: 2026-06-14\n---\n\n# Alpha Note\n")
-	writeNote(t, v, "decisions/2026-06.md", "---\nupdated: 2026-06-14\n---\n\n# June Decisions\n")
-
-	out, err := runRoot(t, "moc")
-	if err != nil {
-		t.Fatalf("moc error: %v (out=%q)", err, out)
-	}
-	moc := filepath.Join(v, "MOC.md")
-	b, err := os.ReadFile(moc)
-	if err != nil {
-		t.Fatalf("MOC.md not written: %v", err)
-	}
-	body := string(b)
-	if !strings.Contains(body, "[[projects/alpha]] — Alpha Note") {
-		t.Errorf("MOC missing alpha entry:\n%s", body)
-	}
-	if !strings.Contains(body, "[[decisions/2026-06]] — June Decisions") {
-		t.Errorf("MOC missing decisions entry:\n%s", body)
 	}
 }
 
@@ -388,10 +345,6 @@ func TestNoteCreatesScaffold(t *testing.T) {
 			t.Errorf("note missing %q:\n%s", want, body)
 		}
 	}
-	// note also rebuilds the MOC
-	if _, err := os.Stat(filepath.Join(v, "MOC.md")); err != nil {
-		t.Errorf("note did not rebuild MOC.md: %v", err)
-	}
 }
 
 func TestNoteTitleAndTagsFlags(t *testing.T) {
@@ -507,7 +460,7 @@ func TestSyncRebuildsAndCommits(t *testing.T) {
 	mustGit(t, v, "init", "-q")
 	mustGit(t, v, "config", "user.name", "test")
 	mustGit(t, v, "config", "user.email", "test@local")
-	// sync stages a FIXED pathspec set: "*.md", "MOC.md", and the dirs
+	// sync stages a FIXED pathspec set: "*.md" and the dirs
 	// decisions/ infrastructure/ projects/ reference/. git treats a literal
 	// pathspec that matches nothing as fatal and aborts the whole `git add`, so
 	// all four dirs must exist for the stage (and thus the commit) to happen.
@@ -520,7 +473,7 @@ func TestSyncRebuildsAndCommits(t *testing.T) {
 	if err != nil {
 		t.Fatalf("sync error: %v (out=%q)", err, out)
 	}
-	for _, want := range []string{"Rebuilt MOC.md", "Staged", "Committed"} {
+	for _, want := range []string{"Staged", "Committed"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("sync output missing %q:\n%s", want, out)
 		}
@@ -599,7 +552,7 @@ func TestInitOutput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("init error: %v (out=%q)", err, out)
 	}
-	for _, want := range []string{"Scaffolded", "hooksPath", "Built MOC.md", "Initial commit"} {
+	for _, want := range []string{"Scaffolded", "hooksPath", "Initial commit"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("init output missing %q:\n%s", want, out)
 		}

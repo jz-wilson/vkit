@@ -26,7 +26,7 @@ file watcher, and link-safe note operations — all in one static binary.`,
 func init() {
 	rootCmd.PersistentFlags().StringVar(&vaultFlag, "vault", "", "vault root (default: $VKIT_VAULT, walk-up to _format.md, or $HOME/vault)")
 	rootCmd.Version = Version // enables the built-in --version flag
-	rootCmd.AddCommand(initCmd, updateCmd, mocCmd, watchCmd, validateCmd, noteCmd, renameCmd, syncCmd, doctorCmd, versionCmd)
+	rootCmd.AddCommand(initCmd, updateCmd, validateCmd, noteCmd, renameCmd, syncCmd, doctorCmd, versionCmd)
 }
 
 // Execute runs the root command. v is the build version injected by main
@@ -55,7 +55,7 @@ func resolveVault(arg string) (string, error) {
 }
 
 // resolveExisting resolves the vault for commands whose first positional arg IS
-// the vault path (init/update/moc/watch).
+// the vault path (init/update).
 func resolveExisting(args []string) (string, error) {
 	arg := ""
 	if len(args) > 0 {

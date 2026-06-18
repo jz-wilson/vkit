@@ -14,7 +14,7 @@ read the selected note in a scrolling workspace, and watch validation problems
 update live as files change on disk.
 
 Keys: tab cycles panels, j/k or arrows move, v validates the highlighted note,
-m rebuilds MOC.md, q or ctrl+c quits.`,
+q or ctrl+c quits.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		vault, err := resolveExisting(args)

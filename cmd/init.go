@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jz-wilson/vkit/cmd/style"
-	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/osdetect"
 	"github.com/jz-wilson/vkit/internal/scaffold"
 	"github.com/jz-wilson/vkit/internal/vaultpath"
@@ -49,12 +48,6 @@ var initCmd = &cobra.Command{
 		}
 		fmt.Println(style.Step(true, "Set core.hooksPath → .githooks"))
 
-		n, err := moc.Build(vault, vaultpath.Today())
-		if err != nil {
-			return err
-		}
-		fmt.Println(style.Step(true, fmt.Sprintf("Built MOC.md (%d notes)", n)))
-
 		// Initial commit (fresh install only — safe to add everything).
 		// --no-verify: the pre-commit hook calls `vkit`, which may not be on PATH
 		// yet at bootstrap, and the generated scaffold is known-valid anyway.
@@ -72,9 +65,7 @@ var initCmd = &cobra.Command{
 		fmt.Println()
 		fmt.Println(style.Row("OS", info.OS))
 		fmt.Println(style.Row("Vault", style.Dim(vault)))
-		fmt.Println(style.Row("Index", fmt.Sprintf("MOC.md (%d notes)", n)))
 		fmt.Println(style.Row("Obsidian", obsidianStatus(info)))
-		fmt.Printf("\n%s\n", style.Dim(fmt.Sprintf("Keep the index fresh with `vkit watch --vault %s`\n(or install a service from %s)", vault, filepath.Join(vault, "services"))))
 		return nil
 	},
 }

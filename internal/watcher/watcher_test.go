@@ -41,7 +41,6 @@ func TestIgnored(t *testing.T) {
 		"/vault/infrastructure/x.md":  false,
 		"/vault/decisions/2026-06.md": false,
 		"/vault/a.md":                 false,
-		"/vault/MOC.md":               true,
 		"/vault/.obsidian/app.json":   true,
 		"/vault/.git/config":          true,
 		"/vault/.hidden.md":           true,
@@ -54,7 +53,6 @@ func TestIgnored(t *testing.T) {
 		"note.tmp": true,
 		"note.swp": true,
 		"note.md~": true,
-		"MOC.md":   true, // MOC\.md is unanchored
 		// bare relative dot/scripts/services lack a leading slash -> NOT ignored:
 		"scripts/build.sh":   false,
 		"services/s.md":      false,
@@ -85,8 +83,6 @@ func TestNewestNote(t *testing.T) {
 	chtime(t, newest, base.Add(2*time.Hour))
 
 	// ignored content that is *newer* must NOT win.
-	moc := write(t, v, "MOC.md", "moc")
-	chtime(t, moc, base.Add(10*time.Hour))
 	script := write(t, v, "scripts/x.md", "x")
 	chtime(t, script, base.Add(11*time.Hour))
 	svc := write(t, v, "services/y.md", "y")
@@ -110,7 +106,6 @@ func TestNewestNote(t *testing.T) {
 func TestNewestNoteEmpty(t *testing.T) {
 	v := t.TempDir()
 	// only ignored / non-md content present.
-	write(t, v, "MOC.md", "moc")
 	write(t, v, "notes.txt", "t")
 	if got := newestNote(v); !got.IsZero() {
 		t.Errorf("newestNote=%v want zero time", got)

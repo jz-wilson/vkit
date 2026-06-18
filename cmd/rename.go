@@ -6,9 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jz-wilson/vkit/cmd/style"
-	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/rename"
-	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
 
 var renameDryRun bool
@@ -40,10 +38,6 @@ var renameCmd = &cobra.Command{
 			fmt.Println(style.Summary("no changes written"))
 			return nil
 		}
-		n, err := moc.Build(vault, vaultpath.Today())
-		if err != nil {
-			return err
-		}
 		fmt.Println(header)
 		fmt.Println(style.Step(true, "git mv "+args[0]+" → "+args[1]))
 		fmt.Println(style.Step(true, fmt.Sprintf("Scanned %d files", res.Scanned)))
@@ -53,7 +47,6 @@ var renameCmd = &cobra.Command{
 				fmt.Println("    " + style.Dim(f))
 			}
 		}
-		fmt.Println(style.Step(true, fmt.Sprintf("MOC rebuilt (%d notes)", n)))
 		fmt.Println(style.Summary("Renamed "+args[0]+" → "+args[1], fmt.Sprintf("%d files updated", res.Rewritten)))
 		return nil
 	},

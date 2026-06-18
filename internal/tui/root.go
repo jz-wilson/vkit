@@ -157,8 +157,6 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.cycleFocus(-1), nil
 		case "v":
 			return m, m.validateSelectedCmd()
-		case "m":
-			return m, rebuildMocCmd(m.vault)
 		}
 		// Other keys go only to the focused panel.
 		return m.updateFocused(msg)
@@ -174,14 +172,6 @@ func (m RootModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ValidationDoneMsg:
 		m.status = validationStatus(msg)
-		return m.broadcast(msg)
-
-	case MocRebuiltMsg:
-		if msg.Err != nil {
-			m.status = "MOC rebuild failed: " + msg.Err.Error()
-		} else {
-			m.status = fmt.Sprintf("MOC rebuilt — %d notes", msg.Count)
-		}
 		return m.broadcast(msg)
 	}
 
@@ -259,12 +249,13 @@ func (m RootModel) View() string {
 	return body + "\n" + m.statusBar()
 }
 
-// statusBar renders the keybinding hints plus the transient status message.
+// statusBar renders the keybinding hints or a transient status message.
+// When status is set we show it exclusively — appending to the help text
+// overflows narrow terminals and the status becomes invisible.
 func (m RootModel) statusBar() string {
-	help := lipgloss.NewStyle().Foreground(colorBlur).
-		Render("tab cycle | j/k move | v validate | m rebuild MOC | q quit")
-	if m.status == "" {
-		return help
+	if m.status != "" {
+		return lipgloss.NewStyle().Foreground(colorTitle).Render(m.status)
 	}
-	return help + lipgloss.NewStyle().Foreground(colorTitle).Render("   "+m.status)
+	return lipgloss.NewStyle().Foreground(colorBlur).
+		Render("tab cycle | j/k move | v validate | q quit")
 }

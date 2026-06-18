@@ -7,10 +7,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/jz-wilson/vkit/cmd/style"
-	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/osdetect"
 	"github.com/jz-wilson/vkit/internal/scaffold"
-	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
 
 var (
@@ -53,12 +51,6 @@ var updateCmd = &cobra.Command{
 			return nil
 		}
 
-		// Update never auto-commits — rebuild the index only.
-		n, err := moc.Build(vault, vaultpath.Today())
-		if err != nil {
-			return err
-		}
-		fmt.Println(style.Step(true, fmt.Sprintf("MOC rebuilt (%d notes)", n)))
 		fmt.Println(style.Summary(
 			res.Action,
 			fmt.Sprintf("%d tooling, %d added, %d overwritten, %d kept", res.Tool, res.New, res.Over, res.Keep),

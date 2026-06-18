@@ -25,13 +25,6 @@ type ValidationDoneMsg struct {
 	Err      error
 }
 
-// MocRebuiltMsg reports the result of a forced Map-of-Content regeneration
-// (the 'm' keybinding).
-type MocRebuiltMsg struct {
-	Count int
-	Err   error
-}
-
 // FileChangedMsg is delivered by the watcher bridge each time the underlying
 // watcher.EventSource reports a changed file on disk. The RootModel reacts by
 // re-validating and, in later phases, refreshing the workspace.

@@ -1,6 +1,6 @@
-// Package watcher ports watch.sh: it rebuilds MOC.md whenever a note changes,
-// using an fsnotify backend (recursive — new dirs are added as they appear) with
-// a zero-dependency mtime-polling fallback.
+// Package watcher watches a vault directory for note changes, using an fsnotify
+// backend (recursive — new dirs are added as they appear) with a zero-dependency
+// mtime-polling fallback.
 package watcher
 
 import (
@@ -12,16 +12,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/jz-wilson/vkit/internal/moc"
-	"github.com/jz-wilson/vkit/internal/vaultpath"
-
 	"github.com/fsnotify/fsnotify"
 )
 
 // ignoreRe matches paths that must not trigger a rebuild — dotpaths, the
-// scripts/ and services/ dirs, MOC.md itself, and editor temp/swap files. This
-// mirrors watch.sh's IGNORE regex.
-var ignoreRe = regexp.MustCompile(`(/\.|/scripts/|/services/|MOC\.md|\.tmp$|\.swp$|~$)`)
+// scripts/ and services/ dirs, and editor temp/swap files. This mirrors
+// watch.sh's IGNORE regex.
+var ignoreRe = regexp.MustCompile(`(/\.|/scripts/|/services/|\.tmp$|\.swp$|~$)`)
 
 func ignored(path string) bool {
 	return ignoreRe.MatchString(filepath.ToSlash(path))
@@ -222,61 +219,6 @@ func WatchWithSource(vault string, src EventSource, rebuild func() error) error 
 		}
 	}
 	return nil
-}
-
-// Watch blocks, rebuilding the MOC on changes until the process is killed.
-// If poll is true, or fsnotify cannot start, the polling backend is used.
-// This preserves the original public signature.
-func Watch(vault string, poll bool, interval time.Duration) error {
-	defaultRebuild := func() error {
-		_, err := moc.Build(vault, vaultpath.Today())
-		return err
-	}
-
-	if !poll {
-		src, err := NewFsnotifySource(vault)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "watch: fsnotify unavailable (%v) — falling back to polling\n", err)
-			poll = true
-		} else {
-			fmt.Println("watch: fsnotify backend")
-			return watchFsnotifyDebounced(src, defaultRebuild)
-		}
-	}
-
-	fmt.Printf("watch: polling backend (every %s)\n", interval)
-	src := NewPollSource(vault, interval)
-	return WatchWithSource(vault, src, defaultRebuild)
-}
-
-// watchFsnotifyDebounced wraps WatchWithSource with a 300 ms debounce that
-// coalesces rapid bursts of events into a single rebuild call.
-func watchFsnotifyDebounced(src EventSource, rebuild func() error) error {
-	defer src.Close()
-	const debounce = 300 * time.Millisecond
-	timer := time.NewTimer(debounce)
-	timer.Stop() // don't fire until we get an event
-	defer timer.Stop()
-	pending := false
-	events := src.Events()
-	for {
-		select {
-		case _, ok := <-events:
-			if !ok {
-				return nil
-			}
-			if pending {
-				timer.Stop()
-			}
-			timer.Reset(debounce)
-			pending = true
-		case <-timer.C:
-			pending = false
-			if err := rebuild(); err != nil {
-				fmt.Fprintf(os.Stderr, "watch: rebuild failed: %v\n", err)
-			}
-		}
-	}
 }
 
 // newestNote returns the mtime of the most recently modified non-ignored .md

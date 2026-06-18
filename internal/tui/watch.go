@@ -3,7 +3,6 @@ package tui
 import (
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/jz-wilson/vkit/internal/moc"
 	"github.com/jz-wilson/vkit/internal/validate"
 	"github.com/jz-wilson/vkit/internal/vaultpath"
 	"github.com/jz-wilson/vkit/internal/watcher"
@@ -46,13 +45,5 @@ func validateFileCmd(vault, rel string) tea.Cmd {
 	return func() tea.Msg {
 		probs, err := validate.Files(vault, []string{rel})
 		return ValidationDoneMsg{Rel: rel, Problems: probs, Err: err}
-	}
-}
-
-// rebuildMocCmd regenerates MOC.md (the 'm' keybinding).
-func rebuildMocCmd(vault string) tea.Cmd {
-	return func() tea.Msg {
-		n, err := moc.Build(vault, vaultpath.Today())
-		return MocRebuiltMsg{Count: n, Err: err}
 	}
 }

@@ -11,8 +11,6 @@ import (
 
 	"github.com/jz-wilson/vkit/cmd/style"
 	"github.com/jz-wilson/vkit/internal/config"
-	"github.com/jz-wilson/vkit/internal/moc"
-	"github.com/jz-wilson/vkit/internal/vaultpath"
 )
 
 var syncMsg string
@@ -28,14 +26,8 @@ var syncCmd = &cobra.Command{
 
 		fmt.Println(style.Section("🔄", "Sync"))
 
-		n, err := moc.Build(vault, vaultpath.Today())
-		if err != nil {
-			return err
-		}
-		fmt.Println(style.Step(true, fmt.Sprintf("Rebuilt MOC.md (%d notes)", n)))
-
 		// Stage ONLY documentation assets — never `git add -A`.
-		addArgs := []string{"add", "--", "*.md", "MOC.md"}
+		addArgs := []string{"add", "--", "*.md"}
 		for _, d := range config.ContentDirs(vault) {
 			if fi, err := os.Stat(filepath.Join(vault, d)); err == nil && fi.IsDir() {
 				addArgs = append(addArgs, d)

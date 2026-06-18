@@ -1,6 +1,6 @@
 // Package vaultpath resolves the vault root and holds the shared path-exclusion
-// rules used by the moc, validate, and watcher packages so they all agree on
-// what counts as a note.
+// rules used by the validate and watcher packages so they all agree on what
+// counts as a note.
 package vaultpath
 
 import (
@@ -33,7 +33,7 @@ var excludedDirs = map[string]bool{
 // skipNames are markdown files that are never treated as notes (generated or
 // meta files).
 var skipNames = map[string]bool{
-	"MOC.md":     true,
+	"MOC.md":     true, // legacy generated file; kept here so old vaults still exclude it
 	"CLAUDE.md":  true,
 	"AGENTS.md":  true,
 	"_format.md": true,
